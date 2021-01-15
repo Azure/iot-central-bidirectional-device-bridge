@@ -1,0 +1,683 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "DeviceBridge",
+    "version": "1.0"
+  },
+  "paths": {
+    "/devices/{deviceId}/ConnectionStatus": {
+      "get": {
+        "tags": [
+          "ConnectionStatus"
+        ],
+        "summary": "Gets that latest connection status for a device.",
+        "description": "For a detailed description of each status, see https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet.",
+        "operationId": "GetCurrentConnectionStatus",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The latest connection status and reason.",
+            "schema": {
+              "$ref": "#/definitions/DeviceStatusResponseBody"
+            }
+          },
+          "404": {
+            "description": "If the connection status is not known (i.e., the device hasn't attempted to connect)."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/ConnectionStatus/sub": {
+      "get": {
+        "tags": [
+          "ConnectionStatus"
+        ],
+        "summary": "Gets the current connection status change subscription for a device.",
+        "operationId": "GetConnectionStatusSubscription",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current connection status subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscription"
+            }
+          },
+          "404": {
+            "description": "If a subscription doesn't exist."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "ConnectionStatus"
+        ],
+        "summary": "Creates or updates the current connection status change subscription for a device.",
+        "description": "When the internal connection status of a device changes, the service will send an event to the desired callback URL.\r\n            \r\n    Example event:\r\n    {\r\n        \"eventType\": \"string\",\r\n        \"deviceId\": \"string\",\r\n        \"deviceReceivedAt\": \"2020-12-04T01:06:14.251Z\",\r\n        \"status\": \"string\",\r\n        \"reason\": \"string\"\r\n    }\r\n            \r\nFor a detailed description of each status, see https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet.",
+        "operationId": "CreateOrUpdateConnectionStatusSubscription",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/SubscriptionCreateOrUpdateBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The created or updated connection status subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscription"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "ConnectionStatus"
+        ],
+        "summary": "Deletes the current connection status change subscription for a device.",
+        "operationId": "DeleteConnectionStatusSubscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Subscription deleted successfully."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/DeviceBound/sub": {
+      "get": {
+        "tags": [
+          "DeviceBound"
+        ],
+        "summary": "Gets the current C2D message subscription for a device.",
+        "operationId": "GetC2DMessageSubscription",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current C2D message subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscriptionWithStatus"
+            }
+          },
+          "404": {
+            "description": "If a subscription doesn't exist."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DeviceBound"
+        ],
+        "summary": "Creates or updates the current C2D message subscription for a device.",
+        "description": "When the device receives a new C2D message from IoTHub, the service will send an event to the desired callback URL.\r\n            \r\n    Example event:\r\n    {\r\n        \"eventType\": \"string\",\r\n        \"deviceId\": \"string\",\r\n        \"deviceReceivedAt\": \"2020-12-04T01:06:14.251Z\",\r\n        \"messageBody\": {},\r\n        \"properties\": {\r\n            \"prop1\": \"string\",\r\n            \"prop2\": \"string\",\r\n        },\r\n        \"messageId\": \"string\",\r\n        \"expirtyTimeUtC\": \"2020-12-04T01:06:14.251Z\"\r\n    }\r\n            \r\nThe response status code of the callback URL will determine how the service will acknowledge a message:\r\n- Response code between 200 and 299: the service will complete the message.\r\n- Response code between 400 and 499: the service will reject the message.\r\n- Any other response status: the service will abandon the message, causing IotHub to redeliver it.\r\n            \r\nFor a detailed overview of C2D messages, see https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-c2d.",
+        "operationId": "CreateOrUpdateC2DMessageSubscription",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/SubscriptionCreateOrUpdateBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The created or updated C2D message subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscriptionWithStatus"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DeviceBound"
+        ],
+        "summary": "Deletes the current C2D message subscription for a device.",
+        "operationId": "DeleteC2DMessageSubscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Subscription deleted successfully."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Messages/events": {
+      "post": {
+        "tags": [
+          "Messages"
+        ],
+        "summary": "Sends a device message to IoTHub.",
+        "description": "Example request:\r\n            \r\n    POST /devices/{deviceId}/messages/events\r\n    {\r\n        \"data\": {\r\n            \"temperature\": 4.8,\r\n            \"humidity\": 31\r\n        }\r\n    }\r\n.",
+        "operationId": "SendMessage",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/MessageBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Message sent successfully."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Methods/sub": {
+      "get": {
+        "tags": [
+          "Methods"
+        ],
+        "summary": "Gets the current direct methods subscription for a device.",
+        "operationId": "GetMethodsSubscription",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current direct methods subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscriptionWithStatus"
+            }
+          },
+          "404": {
+            "description": "If a subscription doesn't exist."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Methods"
+        ],
+        "summary": "Creates or updates the current direct methods subscription for a device.",
+        "description": "When the device receives a direct method invocation from IoTHub, the service will send an event to the desired callback URL.\r\n            \r\n    Example event:\r\n    {\r\n        \"eventType\": \"string\",\r\n        \"deviceId\": \"string\",\r\n        \"deviceReceivedAt\": \"2020-12-04T01:06:14.251Z\",\r\n        \"methodName\": \"string\",\r\n        \"requestData\": {}\r\n    }\r\n            \r\nThe callback may return an optional response body, which will be sent to IoTHub as the method response:\r\n            \r\n    Example callback response:\r\n    {\r\n        \"status\": 200,\r\n        \"payload\": {}\r\n    }\r\n.",
+        "operationId": "CreateOrUpdateMethodsSubscription",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/SubscriptionCreateOrUpdateBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The created or updated C2D message subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscriptionWithStatus"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Methods"
+        ],
+        "summary": "Deletes the current direct methods subscription for a device.",
+        "operationId": "DeleteMethodsSubscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Subscription deleted successfully."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Registration": {
+      "post": {
+        "tags": [
+          "Registration"
+        ],
+        "summary": "Performs DPS registration for a device, optionally assigning it to a model.",
+        "description": "The registration result is internally cached to be used in future connections.\r\nThis route is only intended for ahead-of-time registration of devices with the bridge and assignment to a specific model. To access all DPS registration features,\r\nincluding sending custom registration payload and getting the assigned hub, please use the DPS REST API (https://docs.microsoft.com/en-us/rest/api/iot-dps/).\r\n            \r\n<b>NOTE:</b> DPS registration is a long-running operation, so calls to this route may take a long time to return. If this is a concern, use the DPS REST API directly, which provides\r\nsupport for long-running operation status lookup.",
+        "operationId": "Register",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/RegistrationBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Registration successful."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Resync": {
+      "post": {
+        "tags": [
+          "Resync"
+        ],
+        "summary": "Forces a full synchronization of all subscriptions for this device and attempts to restart any subscriptions in a stopped state.",
+        "description": "Internally it forces the reconnection of the device if it's in a permanent failure state, due for instance to:\r\n- Bad credentials.\r\n- Device was previously disabled in the cloud side.\r\n- Automatic retries expired (e.g., due to a long period without network connectivity).",
+        "operationId": "Resync",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Resynchronization started."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Twin": {
+      "get": {
+        "tags": [
+          "Twin"
+        ],
+        "summary": "Gets the device twin.",
+        "operationId": "GetTwin",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The device twin.",
+            "schema": {
+              "type": "object",
+              "properties": {
+                "twin": {
+                  "type": "object",
+                  "properties": {
+                    "properties": {
+                      "type": "object",
+                      "properties": {
+                        "desired": {
+                          "type": "object"
+                        },
+                        "reported": {
+                          "type": "object"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Twin/properties/reported": {
+      "patch": {
+        "tags": [
+          "Twin"
+        ],
+        "summary": "Updates reported properties in the device twin.",
+        "description": "Example request:\r\n            \r\n    PATCH /devices/{deviceId}/properties/reported\r\n    {\r\n        \"patch\": {\r\n            \"fanSpeed\": 35,\r\n            \"serial\": \"ABC\"\r\n        }\r\n    }\r\n.",
+        "operationId": "UpdateReportedProperties",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/ReportedPropertiesPatch"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Twin updated successfully."
+          }
+        }
+      }
+    },
+    "/devices/{deviceId}/Twin/properties/desired/sub": {
+      "get": {
+        "tags": [
+          "Twin"
+        ],
+        "summary": "Gets the current desired property change subscription for a device.",
+        "operationId": "GetDesiredPropertiesSubscription",
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The current desired property change subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscriptionWithStatus"
+            }
+          },
+          "404": {
+            "description": "If a subscription doesn't exist."
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Twin"
+        ],
+        "summary": "Creates or updates the current desired property change subscription for a device.",
+        "description": "When the device receives a new desired property change from IoTHub, the service will send an event to the desired callback URL.\r\n            \r\n    Example event:\r\n    {\r\n        \"eventType\": \"string\",\r\n        \"deviceId\": \"string\",\r\n        \"deviceReceivedAt\": \"2020-12-04T01:06:14.251Z\",\r\n        \"desiredProperties\": {\r\n            \"prop1\": \"string\",\r\n            \"prop2\": 12,\r\n            \"prop3\": {},\r\n        }\r\n    }\r\n.",
+        "operationId": "CreateOrUpdateDesiredPropertiesSubscription",
+        "consumes": [
+          "application/json",
+          "text/json",
+          "application/*+json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "schema": {
+              "$ref": "#/definitions/SubscriptionCreateOrUpdateBody"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The created or updated C2D message subscription.",
+            "schema": {
+              "$ref": "#/definitions/DeviceSubscriptionWithStatus"
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Twin"
+        ],
+        "summary": "Deletes the current desired property change subscription for a device.",
+        "operationId": "DeleteDesiredPropertiesSubscription",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "deviceId",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Subscription deleted successfully."
+          }
+        }
+      }
+    }
+  },
+  "definitions": {
+    "DeviceStatusResponseBody": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "DeviceSubscription": {
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "string"
+        },
+        "subscriptionType": {
+          "type": "string"
+        },
+        "callbackUrl": {
+          "type": "string"
+        },
+        "createdAt": {
+          "format": "date-time",
+          "type": "string"
+        }
+      }
+    },
+    "SubscriptionCreateOrUpdateBody": {
+      "required": [
+        "callbackUrl"
+      ],
+      "type": "object",
+      "properties": {
+        "callbackUrl": {
+          "type": "string"
+        }
+      }
+    },
+    "DeviceSubscriptionWithStatus": {
+      "type": "object",
+      "properties": {
+        "deviceId": {
+          "type": "string"
+        },
+        "subscriptionType": {
+          "type": "string"
+        },
+        "callbackUrl": {
+          "type": "string"
+        },
+        "createdAt": {
+          "format": "date-time",
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        }
+      }
+    },
+    "MessageBody": {
+      "required": [
+        "data"
+      ],
+      "type": "object",
+      "properties": {
+        "data": {
+          "type": "object",
+          "additionalProperties": { }
+        },
+        "properties": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "componentName": {
+          "type": "string"
+        },
+        "creationTimeUtc": {
+          "format": "date-time",
+          "type": "string"
+        }
+      }
+    },
+    "RegistrationBody": {
+      "type": "object",
+      "properties": {
+        "modelId": {
+          "type": "string"
+        }
+      }
+    },
+    "ReportedPropertiesPatch": {
+      "required": [
+        "patch"
+      ],
+      "type": "object",
+      "properties": {
+        "patch": {
+          "type": "object",
+          "additionalProperties": { }
+        }
+      }
+    }
+  }
+}
