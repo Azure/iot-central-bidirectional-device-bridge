@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "secrets1": {
+      "type": "secrets.keyVault",
+      "connectionId": "ASPNETCORE_HOSTINGSTARTUP__KEYVAULT__CONFIGURATIONVAULT"
+    }
+  }
+}

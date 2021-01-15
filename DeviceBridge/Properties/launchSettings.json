@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:50744",
+      "sslPort": 44305
+    }
+  },
+  "profiles": {
+    "BridgeV2Service": {
+      "commandName": "Project",
+      "applicationUrl": "https://localhost:5001;http://localhost:5000",
+      "environmentVariables": {
+        "KV_URL": "<replace-with-local-development-keyvault-url>",
+        "MAX_POOL_SIZE": "50",
+        "DEVICE_RAMPUP_BATCH_SIZE": "150",
+        "DEVICE_RAMPUP_BATCH_INTERVAL_MS": "1000",
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_HOSTINGSTARTUP__KEYVAULT__CONFIGURATIONENABLED": "true",
+        "HTTP_RETRY_LIMIT": "5"
+      }
+    }
+  }
+}
