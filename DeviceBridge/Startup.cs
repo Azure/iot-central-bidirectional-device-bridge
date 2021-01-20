@@ -70,7 +70,7 @@ namespace DeviceBridge
             // Start services
             services.AddSingleton<ISecretsProvider>(secretsService);
             services.AddSingleton(_logger);
-            services.AddSingleton<EncryptionService>();
+            services.AddSingleton<IEncryptionService, EncryptionService>();
             services.AddSingleton<IStorageProvider>(provider => new StorageProvider(sqlConnectionString, provider.GetRequiredService<EncryptionService>()));
             services.AddSingleton(provider => new ConnectionManager(provider.GetRequiredService<Logger>(), idScope, sasKey, maxPoolSize, provider.GetRequiredService<IStorageProvider>()));
             services.AddSingleton(provider => new SubscriptionService(provider.GetRequiredService<Logger>(), provider.GetRequiredService<ConnectionManager>(), provider.GetRequiredService<IStorageProvider>(), provider.GetRequiredService<IHttpClientFactory>(), rampupBatchSize, rampupBatchIntervalMs));
@@ -91,8 +91,6 @@ namespace DeviceBridge
             {
                 options.Filters.Add(new AuthorizeFilter());
             });
-
-            services.AddHealthChecks();
 
             services.AddSwaggerGen(options =>
             {
@@ -137,7 +135,6 @@ namespace DeviceBridge
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapHealthChecks("/health");
             });
         }
 
