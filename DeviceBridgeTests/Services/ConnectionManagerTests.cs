@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using DeviceBridge.Common.Exceptions;
@@ -12,6 +13,7 @@ using DeviceBridge.Providers;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Client.Exceptions;
 using Microsoft.Azure.Devices.Provisioning.Client;
+using Microsoft.Azure.Devices.Shared;
 using Microsoft.QualityTools.Testing.Fakes;
 using Moq;
 using NLog;
@@ -337,6 +339,225 @@ namespace DeviceBridge.Services.Tests
                 Assert.True(desiredPropertyCallbackCalled);
                 Assert.True(methodCallbackCalled);
                 Assert.True(c2dCallbackCalled);
+
+                // Check that client is disposed and status change handler is unregistered if open fails.
+                bool disposed = false;
+                ConnectionStatusChangesHandler statusChangeHandler = (_, __) => { };
+                ShimDeviceClientCaptureCloseDisposeAndConnectionStatusHandler(() => { }, () => disposed = true, handler => statusChangeHandler = handler);
+                Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.OpenAsync = (@this) => throw new Exception();
+                await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("fail-device-id"));
+                Assert.True(disposed);
+                Assert.IsNull(statusChangeHandler);
+            }
+        }
+
+        [Test]
+        public async Task Callbacks()
+        {
+            using (ShimsContext.Create())
+            {
+                var connectionManager = CreateConnectionManager();
+
+                // Checks that callbacks are registered even if the was already open at registration time.
+                var capturedSemaphores = new List<SemaphoreSlim>();
+                MethodCallback capturedMethodCallback = null;
+                ReceiveMessageCallback capturedMessageCallback = null;
+                DesiredPropertyUpdateCallback capturedPropertyUpdateCallback = null;
+                ShimDeviceClientAndCaptureAllHandlers(handler => capturedMethodCallback = handler, handler => capturedMessageCallback = handler, handler => capturedPropertyUpdateCallback = handler);
+                ShimDps("test-hub.azure.devices.net");
+                CaptureSemaphoreOnWait((semaphore) => capturedSemaphores.Add(semaphore));
+                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                bool desiredPropertyCallbackCalled = false, methodCallbackCalled = false, c2dCallbackCalled = false;
+                await connectionManager.SetMethodCallbackAsync("test-device-id", "method-callback-id", (_, __) =>
+                {
+                    methodCallbackCalled = true;
+                    return Task.FromResult(new MethodResponse(200));
+                });
+                await connectionManager.SetMessageCallbackAsync("test-device-id", "message-callback-id", (_) =>
+                {
+                    c2dCallbackCalled = true;
+                    return Task.FromResult(ReceiveMessageCallbackStatus.Accept);
+                });
+                await connectionManager.SetDesiredPropertyUpdateCallbackAsync("test-device-id", "property-callback-id", (_, __) => Task.FromResult(desiredPropertyCallbackCalled = true));
+                await capturedMethodCallback(null, null);
+                await capturedMessageCallback(null, null);
+                await capturedPropertyUpdateCallback(null, null);
+                Assert.True(desiredPropertyCallbackCalled);
+                Assert.True(methodCallbackCalled);
+                Assert.True(c2dCallbackCalled);
+
+                // Check that callback Ids are correctly returned.
+                Assert.AreEqual(connectionManager.GetCurrentMethodCallbackId("test-device-id"), "method-callback-id");
+                Assert.AreEqual(connectionManager.GetCurrentMessageCallbackId("test-device-id"), "message-callback-id");
+                Assert.AreEqual(connectionManager.GetCurrentDesiredPropertyUpdateCallbackId("test-device-id"), "property-callback-id");
+
+                // Check that callbacks are properly removed.
+                capturedMethodCallback = null;
+                capturedMessageCallback = null;
+                var oldCapturedPropertyUpdateCallback = capturedPropertyUpdateCallback;
+                capturedPropertyUpdateCallback = null;
+                await connectionManager.RemoveMethodCallbackAsync("test-device-id");
+                await connectionManager.RemoveMessageCallbackAsync("test-device-id");
+                await connectionManager.RemoveDesiredPropertyUpdateCallbackAsync("test-device-id");
+                Assert.IsNull(connectionManager.GetCurrentMethodCallbackId("test-device-id"));
+                Assert.IsNull(connectionManager.GetCurrentMessageCallbackId("test-device-id"));
+                Assert.IsNull(connectionManager.GetCurrentDesiredPropertyUpdateCallbackId("test-device-id"));
+                Assert.IsNull(capturedMethodCallback);
+                Assert.IsNull(capturedMessageCallback);
+                Assert.AreNotEqual(capturedPropertyUpdateCallback, oldCapturedPropertyUpdateCallback); // Removing the property callback just replaces it with an empty one
+
+                // Check that all callback register/unregister operations locked on the same semaphore as the connection open operation
+                Assert.AreEqual(capturedSemaphores.Count, 7 /* 1 open, 3 register, 3 unregister */);
+                Assert.IsNull(capturedSemaphores.Find(s => s != capturedSemaphores[0]));
+
+                // Check that C2D messages are acknowledged according to the callback result.
+                ReceiveMessageCallbackStatus status = ReceiveMessageCallbackStatus.Accept;
+                await connectionManager.SetMessageCallbackAsync("test-device-id", "message-callback-id", (_) =>
+                {
+                    return Task.FromResult(status);
+                });
+                bool completed = false, rejected = false, abandoned = false;
+                Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.CompleteAsyncMessage = (@this, message) => Task.FromResult(completed = true);
+                Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.RejectAsyncMessage = (@this, message) => Task.FromResult(rejected = true);
+                Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.AbandonAsyncMessage = (@this, message) => Task.FromResult(abandoned = true);
+                status = ReceiveMessageCallbackStatus.Accept;
+                await capturedMessageCallback(null, null);
+                Assert.True(completed);
+                status = ReceiveMessageCallbackStatus.Reject;
+                await capturedMessageCallback(null, null);
+                Assert.True(rejected);
+                status = ReceiveMessageCallbackStatus.Abandon;
+                await capturedMessageCallback(null, null);
+                Assert.True(abandoned);
+            }
+        }
+
+        [Test]
+        public async Task AssertDeviceConnectionClosedAsync()
+        {
+            using (ShimsContext.Create())
+            {
+                // Checks that closing the client calls close, dispose, and removes the connection status change handler.
+                var connectionManager = CreateConnectionManager();
+                bool closed = false, disposed = false;
+                ConnectionStatusChangesHandler statusChangeHandler = (_, __) => { };
+                ShimDeviceClientCaptureCloseDisposeAndConnectionStatusHandler(() => closed = true, () => disposed = true, handler => statusChangeHandler = handler);
+                ShimDps("test-hub.azure.devices.net");
+                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                await connectionManager.AssertDeviceConnectionClosedAsync("test-device-id");
+                Assert.True(closed);
+                Assert.True(disposed);
+                Assert.IsNull(statusChangeHandler);
+            }
+        }
+
+        [Test]
+        public async Task StandaloneDpsRegistrationAsync()
+        {
+            using (ShimsContext.Create())
+            {
+                // Check that correct model Id is sent to DPS.
+                var connectionManager = CreateConnectionManager();
+                ProvisioningRegistrationAdditionalData capturedPayload = null;
+                ShimDpsAndCaptureRegistration("test-hub.azure.devices.net", payload => capturedPayload = payload);
+                const string testModelId = "test-model-id";
+                await connectionManager.StandaloneDpsRegistrationAsync(LogManager.GetCurrentClassLogger(), "test-device-id", testModelId);
+                Assert.AreEqual(capturedPayload.JsonData, $"{{\"modelId\":\"{testModelId}\"}}");
+
+                // Check that hub was cached in the DB.
+                _storageProviderMock.Verify(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), "test-device-id", "test-hub.azure.devices.net"), Times.Once);
+
+                // Checks that failure to save hub in DB cache doesn't fail the operation.
+                _storageProviderMock.Setup(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), It.IsAny<string>(), It.IsAny<string>())).Throws(new Exception());
+                await connectionManager.StandaloneDpsRegistrationAsync(LogManager.GetCurrentClassLogger(), "test-device-id", testModelId);
+                _storageProviderMock.Setup(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), It.IsAny<string>(), It.IsAny<string>())).Verifiable();
+            }
+        }
+
+        [Test]
+        public async Task SendEventAsync()
+        {
+            using (ShimsContext.Create())
+            {
+                // Check that operation fails if connection doesn't exist.
+                var connectionManager = CreateConnectionManager();
+                await ExpectToThrow(() => connectionManager.SendEventAsync(LogManager.GetCurrentClassLogger(), "test-device-id", new Dictionary<string, object>() { { "telemetry", "val1" }, }, default), e => e is DeviceConnectionNotFoundException);
+
+                Microsoft.Azure.Devices.Client.Message message = null;
+                ShimDeviceClientAndCaptureSend(capturedMessage => message = capturedMessage);
+                ShimDps("test-hub.azure.devices.net");
+                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                var testCreationTime = DateTime.Now;
+                await connectionManager.SendEventAsync(LogManager.GetCurrentClassLogger(), "test-device-id", new Dictionary<string, object>() { { "telemetry", "val1" }, }, default, new Dictionary<string, string>() { { "prop", "val2" }, }, "test-component", testCreationTime);
+
+                // Check that the correct message is sent.
+                var body = JsonSerializer.Deserialize<Dictionary<string, string>>(Encoding.UTF8.GetString(message.GetBytes()));
+                Assert.AreEqual(body["telemetry"], "val1");
+                Assert.AreEqual(message.ContentEncoding, Encoding.UTF8.WebName);
+                Assert.AreEqual(message.ContentType, "application/json");
+                Assert.AreEqual(message.ComponentName, "test-component");
+                Assert.AreEqual(message.Properties["prop"], "val2");
+                Assert.AreEqual(message.CreationTimeUtc, testCreationTime);
+            }
+        }
+
+        [Test]
+        public async Task GetTwinAsync()
+        {
+            using (ShimsContext.Create())
+            {
+                // Check that operation fails if connection doesn't exist.
+                var connectionManager = CreateConnectionManager();
+                await ExpectToThrow(() => connectionManager.GetTwinAsync(LogManager.GetCurrentClassLogger(), "test-device-id", default), e => e is DeviceConnectionNotFoundException);
+
+                // Check that correct twin is returned.
+                Twin testTwin = new Twin();
+                ShimDeviceClientAndReturnTwin(testTwin);
+                ShimDps("test-hub.azure.devices.net");
+                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                var returnedTwin = await connectionManager.GetTwinAsync(LogManager.GetCurrentClassLogger(), "test-device-id", default);
+                Assert.AreEqual(returnedTwin, testTwin);
+            }
+        }
+
+        [Test]
+        public async Task UpdateReportedPropertiesAsync()
+        {
+            using (ShimsContext.Create())
+            {
+                // Check that operation fails if connection doesn't exist.
+                var connectionManager = CreateConnectionManager();
+                await ExpectToThrow(() => connectionManager.UpdateReportedPropertiesAsync(LogManager.GetCurrentClassLogger(), "test-device-id", new Dictionary<string, object>() { { "prop", "val2" }, }, default), e => e is DeviceConnectionNotFoundException);
+
+                TwinCollection patch = null;
+                ShimDeviceClientAndCapturePropertyUpdate(capturedPatch => patch = capturedPatch);
+                ShimDps("test-hub.azure.devices.net");
+                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                await connectionManager.UpdateReportedPropertiesAsync(LogManager.GetCurrentClassLogger(), "test-device-id", new Dictionary<string, object>() { { "prop", "val2" }, }, default);
+
+                // Assert that patch has correct contents.
+                var body = JsonSerializer.Deserialize<Dictionary<string, string>>(patch.ToJson());
+                Assert.AreEqual(body["prop"], "val2");
+            }
+        }
+
+        [Test]
+        public async Task Dispose()
+        {
+            using (ShimsContext.Create())
+            {
+                // Check that all clients are disposed  when connection manager is disposed.
+                var connectionManager = CreateConnectionManager();
+                int disposeCount = 0;
+                ShimDeviceClientAndCaptureDispose(() => {
+                    disposeCount++;
+                });
+                ShimDps("test-hub.azure.devices.net");
+                await connectionManager.AssertDeviceConnectionOpenAsync("device1");
+                await connectionManager.AssertDeviceConnectionOpenAsync("device2");
+                await connectionManager.AssertDeviceConnectionOpenAsync("device3");
+                connectionManager.Dispose();
+                Assert.AreEqual(disposeCount, 3);
             }
         }
 
@@ -391,6 +612,21 @@ namespace DeviceBridge.Services.Tests
             Microsoft.Azure.Devices.Provisioning.Client.Fakes.ShimProvisioningDeviceClient.AllInstances.RegisterAsync = (@this) =>
             {
                 onRegister();
+                return Task.FromResult(new DeviceRegistrationResult("some-id", DateTime.Now, hubToAssign, "some-id", ProvisioningRegistrationStatusType.Assigned, "", DateTime.Now, 0, "", ""));
+            };
+        }
+
+        /// <summary>
+        /// Shims DPS registration to return a successful assignment and captures the registration call payload.
+        /// </summary>
+        /// <remarks>Must be used within a ShimsContext.</remarks>
+        /// <param name="hubToAssign">Hub to be returned in the assignment.</param>
+        /// <param name="onRegister">Action to execute on registration.</param>
+        private static void ShimDpsAndCaptureRegistration(string hubToAssign, Action<ProvisioningRegistrationAdditionalData> onRegister)
+        {
+            Microsoft.Azure.Devices.Provisioning.Client.Fakes.ShimProvisioningDeviceClient.AllInstances.RegisterAsyncProvisioningRegistrationAdditionalData = (@this, payload) =>
+            {
+                onRegister(payload);
                 return Task.FromResult(new DeviceRegistrationResult("some-id", DateTime.Now, hubToAssign, "some-id", ProvisioningRegistrationStatusType.Assigned, "", DateTime.Now, 0, "", ""));
             };
         }
@@ -506,6 +742,65 @@ namespace DeviceBridge.Services.Tests
             Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.CreateFromConnectionStringStringITransportSettingsArrayClientOptions = (string connStr, ITransportSettings[] settings, ClientOptions _) => {
                 onCreate(connStr);
                 throw exception ?? new Exception();
+            };
+        }
+
+        private static void ShimDeviceClientCaptureCloseDisposeAndConnectionStatusHandler(Action onClose, Action onDispose, Action<ConnectionStatusChangesHandler> onConnectionStatusChangeHandlerSet)
+        {
+            ShimDeviceClient();
+
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.CloseAsync = (@this) =>
+            {
+                onClose();
+                return Task.CompletedTask;
+            };
+
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.Dispose = (@this) =>
+            {
+                onDispose();
+            };
+
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.SetConnectionStatusChangesHandlerConnectionStatusChangesHandler = (@this, handler) =>
+            {
+                onConnectionStatusChangeHandlerSet(handler);
+            };
+        }
+
+        private static void ShimDeviceClientAndCaptureSend(Action<Microsoft.Azure.Devices.Client.Message> onSend)
+        {
+            ShimDeviceClient();
+
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.SendEventAsyncMessageCancellationToken = (@this, message, _) =>
+            {
+                onSend(message);
+                return Task.CompletedTask;
+            };
+        }
+
+        private static void ShimDeviceClientAndCapturePropertyUpdate(Action<TwinCollection> onUpdate)
+        {
+            ShimDeviceClient();
+
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.UpdateReportedPropertiesAsyncTwinCollectionCancellationToken = (@this, patch, _) =>
+            {
+                onUpdate(patch);
+                return Task.CompletedTask;
+            };
+        }
+
+        private static void ShimDeviceClientAndCaptureDispose(Action onDispose)
+        {
+            ShimDeviceClient();
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.Dispose = (@this) => onDispose();
+        }
+
+        private static void ShimDeviceClientAndReturnTwin(Twin twin)
+        {
+            ShimDeviceClient();
+
+            Microsoft.Azure.Devices.Client.Fakes.ShimDeviceClient.AllInstances.GetTwinAsyncCancellationToken = (@this, _) =>
+            {
+                return Task.FromResult(twin);
             };
         }
 
