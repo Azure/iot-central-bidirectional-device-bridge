@@ -205,6 +205,7 @@ namespace DeviceBridge.Services.Tests
                     },
                 };
                 var connectionManager = CreateConnectionManager(hubCache);
+                _storageProviderMock.Invocations.Clear();
 
                 // Check that it Attempts to connect to a known hub, even if it the device Id doesn't match.
                 string connStr = null;
@@ -252,6 +253,7 @@ namespace DeviceBridge.Services.Tests
             using (ShimsContext.Create())
             {
                 var connectionManager = CreateConnectionManager();
+                _storageProviderMock.Invocations.Clear();
 
                 // Checks that it attempts to connect to the hub returned by DPS.
                 string connStr = null;
@@ -457,6 +459,7 @@ namespace DeviceBridge.Services.Tests
             using (ShimsContext.Create())
             {
                 // Check that correct model Id is sent to DPS.
+                _storageProviderMock.Invocations.Clear();
                 var connectionManager = CreateConnectionManager();
                 ProvisioningRegistrationAdditionalData capturedPayload = null;
                 ShimDpsAndCaptureRegistration("test-hub.azure.devices.net", payload => capturedPayload = payload);
