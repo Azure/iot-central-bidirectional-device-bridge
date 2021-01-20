@@ -8,6 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="FakesAssemblies\**" />
+    <EmbeddedResource Remove="FakesAssemblies\**" />
+    <None Remove="FakesAssemblies\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.33.1" />
+    <PackageReference Include="Microsoft.Azure.Devices.Provisioning.Client" Version="1.6.0" />
+    <PackageReference Include="Microsoft.QualityTools.Testing.Fakes" Version="16.7.4-beta.20330.2" />
     <PackageReference Include="Moq" Version="4.15.2" />
     <PackageReference Include="nunit" Version="3.12.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.15.1" />
@@ -24,6 +33,10 @@
 
   <ItemGroup>
 	<AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalDesignTimeBuildInput Remove="FakesAssemblies\**" />
   </ItemGroup>
 
 </Project>

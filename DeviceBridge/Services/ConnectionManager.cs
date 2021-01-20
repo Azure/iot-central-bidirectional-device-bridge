@@ -119,7 +119,7 @@ namespace DeviceBridge.Services
 
         /// <summary>
         /// See <see href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet">ConnectionStatus documentation</see>
-        /// for a detailed description of each status and reaosn.
+        /// for a detailed description of each status and reason.
         /// </summary>
         /// <param name="deviceId">Id of the device to get the status for.</param>
         /// <returns>The last known connection status of the device or null if the device has never connected.</returns>
