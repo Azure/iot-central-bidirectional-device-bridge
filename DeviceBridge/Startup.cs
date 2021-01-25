@@ -92,6 +92,8 @@ namespace DeviceBridge
                 options.Filters.Add(new AuthorizeFilter());
             });
 
+            services.AddHealthChecks();
+
             services.AddSwaggerGen(options =>
             {
                 // Set XML comments.
@@ -135,6 +137,7 @@ namespace DeviceBridge
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
+                endpoints.MapHealthChecks("/health");
             });
         }
 
