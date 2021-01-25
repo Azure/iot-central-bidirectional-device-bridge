@@ -19,7 +19,7 @@ using NLog;
 
 namespace DeviceBridge.Services
 {
-    public class SubscriptionService
+    public class SubscriptionService : ISubscriptionService
     {
         public const uint DefaultRampupBatchSize = 150; // How many devices to synchronize at a time when performing a full DB sync of all subscriptions
         public const uint DefaultRampupBatchIntervalMs = 1000; // How long to wait between each batch when performing a full DB sync of all subscriptions
@@ -344,7 +344,7 @@ namespace DeviceBridge.Services
             _logger.Info("Creating C2D callback {deviceId}. Callback URL {callbackUrl}", deviceId, messageSubscription.CallbackUrl);
             return async (receivedMessage) =>
             {
-              try
+                try
                 {
                     using StreamReader reader = new StreamReader(receivedMessage.BodyStream);
                     var messageBody = reader.ReadToEnd();
@@ -483,4 +483,4 @@ namespace DeviceBridge.Services
             };
         }
     }
- }
+}

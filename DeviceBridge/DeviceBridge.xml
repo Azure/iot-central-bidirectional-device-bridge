@@ -590,7 +590,7 @@
             <param name="lifetime">The lifetime.</param>
             <param name="connectionManager">The connection manager.</param>
         </member>
-        <member name="M:DeviceBridge.Startup.GetRetryPolicy">
+        <member name="M:DeviceBridge.Startup.GetRetryPolicy(NLog.Logger)">
             <summary>
               <para>Gets the retry policy, used in HttpClient.</para>
             </summary>

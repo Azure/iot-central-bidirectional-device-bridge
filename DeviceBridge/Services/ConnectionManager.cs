@@ -35,7 +35,7 @@ namespace DeviceBridge.Services
     ///
     /// Temporary connections are rewed whenever a new operation happens. Deleting a permanent connection falls back to a temporary connection if one exists.
     /// </summary>
-    public class ConnectionManager : IDisposable
+    public class ConnectionManager : IDisposable, IConnectionManager
     {
         public const uint DeafultMaxPoolSize = 50; // Up to 50K device connections
 

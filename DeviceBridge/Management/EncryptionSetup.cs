@@ -34,7 +34,7 @@ namespace DeviceBridge.Management
             var subs = await storageProvider.ListAllSubscriptionsOrderedByDeviceId(logger);
 
             // Generate new key
-            await secretsProvider.PutEncyptionKey(logger, System.Text.Encoding.ASCII.GetString(Aes.Create().Key));
+            await secretsProvider.PutEncryptionKey(logger, System.Text.Encoding.ASCII.GetString(Aes.Create().Key));
 
             foreach (var sub in subs)
             {
