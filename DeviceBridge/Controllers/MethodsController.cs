@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using DeviceBridge.Models;
@@ -15,9 +14,9 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class MethodsController : BaseController
     {
-        private readonly SubscriptionService _subscriptionService;
+        private readonly ISubscriptionService _subscriptionService;
 
-        public MethodsController(Logger logger, SubscriptionService subscriptionService)
+        public MethodsController(Logger logger, ISubscriptionService subscriptionService)
             : base(logger)
         {
             _subscriptionService = subscriptionService;

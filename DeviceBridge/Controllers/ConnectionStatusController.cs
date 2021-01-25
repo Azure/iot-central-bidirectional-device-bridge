@@ -1,6 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
 using DeviceBridge.Models;
@@ -15,10 +14,10 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class ConnectionStatusController : BaseController
     {
-        private readonly SubscriptionService _subscriptionService;
-        private readonly ConnectionManager _connectionManager;
+        private readonly ISubscriptionService _subscriptionService;
+        private readonly IConnectionManager _connectionManager;
 
-        public ConnectionStatusController(Logger logger, SubscriptionService subscriptionService, ConnectionManager connectionManager)
+        public ConnectionStatusController(Logger logger, ISubscriptionService subscriptionService, IConnectionManager connectionManager)
             : base(logger)
         {
             _subscriptionService = subscriptionService;
