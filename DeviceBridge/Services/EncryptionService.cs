@@ -38,14 +38,13 @@ namespace DeviceBridge.Services
         public async Task<string> Decrypt(Logger logger, string encryptedStringWithVersion)
         {
             var encryptedStringParts = encryptedStringWithVersion.Split('-');
-            string keyVersion = null;
 
             if (encryptedStringParts.Length < 2)
             {
                 throw new EncryptionException();
             }
 
-            keyVersion = encryptedStringParts[0];
+            var keyVersion = encryptedStringParts[0];
             var encryptedString = encryptedStringParts[1];
 
             var keySecret = await GetEncryptionKey(logger, keyVersion);

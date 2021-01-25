@@ -10,9 +10,9 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class ResyncController : BaseController
     {
-        private readonly SubscriptionService _subscriptionService;
+        private readonly ISubscriptionService _subscriptionService;
 
-        public ResyncController(NLog.Logger logger, SubscriptionService subscriptionService)
+        public ResyncController(NLog.Logger logger, ISubscriptionService subscriptionService)
             : base(logger)
         {
             _subscriptionService = subscriptionService;
