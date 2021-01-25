@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Azure.KeyVault;
 using Microsoft.Azure.KeyVault.Models;
 using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.QualityTools.Testing.Fakes;
 using NLog;
 
 namespace DeviceBridge.Providers
