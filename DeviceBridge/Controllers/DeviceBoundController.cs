@@ -14,9 +14,9 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class DeviceBoundController : BaseController
     {
-        private readonly SubscriptionService _subscriptionService;
+        private readonly ISubscriptionService _subscriptionService;
 
-        public DeviceBoundController(Logger logger, SubscriptionService subscriptionService)
+        public DeviceBoundController(Logger logger, ISubscriptionService subscriptionService)
             : base(logger)
         {
             _subscriptionService = subscriptionService;

@@ -13,9 +13,9 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class RegistrationController : BaseController
     {
-        private readonly ConnectionManager _connectionManager;
+        private readonly IConnectionManager _connectionManager;
 
-        public RegistrationController(NLog.Logger logger, ConnectionManager connectionManager)
+        public RegistrationController(NLog.Logger logger, IConnectionManager connectionManager)
             : base(logger)
         {
             _connectionManager = connectionManager;

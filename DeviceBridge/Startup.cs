@@ -73,9 +73,9 @@ namespace DeviceBridge
             services.AddSingleton<EncryptionService>();
             services.AddSingleton<IStorageProvider>(provider => new StorageProvider(sqlConnectionString, provider.GetRequiredService<EncryptionService>()));
             services.AddSingleton(provider => new ConnectionManager(provider.GetRequiredService<Logger>(), idScope, sasKey, maxPoolSize, provider.GetRequiredService<IStorageProvider>()));
-            services.AddSingleton(provider => new SubscriptionService(provider.GetRequiredService<Logger>(), provider.GetRequiredService<ConnectionManager>(), provider.GetRequiredService<IStorageProvider>(), provider.GetRequiredService<IHttpClientFactory>(), rampupBatchSize, rampupBatchIntervalMs));
+            services.AddSingleton<ISubscriptionService>(provider => new SubscriptionService(provider.GetRequiredService<Logger>(), provider.GetRequiredService<ConnectionManager>(), provider.GetRequiredService<IStorageProvider>(), provider.GetRequiredService<IHttpClientFactory>(), rampupBatchSize, rampupBatchIntervalMs));
             services.AddSingleton<IBridgeService, BridgeService>();
-            services.AddHttpClient("RetryClient").AddPolicyHandler(GetRetryPolicy());
+            services.AddHttpClient("RetryClient").AddPolicyHandler(GetRetryPolicy(_logger));
 
             services.AddHostedService<ExpiredConnectionCleanupHostedService>();
             services.AddHostedService<SubscriptionStartupHostedService>();
@@ -91,8 +91,6 @@ namespace DeviceBridge
             {
                 options.Filters.Add(new AuthorizeFilter());
             });
-
-            services.AddHealthChecks();
 
             services.AddSwaggerGen(options =>
             {
@@ -137,7 +135,6 @@ namespace DeviceBridge
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapHealthChecks("/health");
             });
         }
 
@@ -145,7 +142,7 @@ namespace DeviceBridge
         ///   <para>Gets the retry policy, used in HttpClient.</para>
         /// </summary>
         /// <returns>IAsyncPolicy&lt;HttpResponseMessage&gt;.</returns>
-        private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy()
+        private static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy(Logger logger)
         {
             // Handles 5XX, 408 and 429 status codes.
             return HttpPolicyExtensions
@@ -157,6 +154,7 @@ namespace DeviceBridge
                 {
                     // Observe server Retry-After if applicable
                     IEnumerable<string> retryAfterValues;
+                    logger.Info($"HTTP client retrying: {response.Result.RequestMessage}.");
                     if (response.Result.Headers.TryGetValues("Retry-After", out retryAfterValues))
                     {
                         return TimeSpan.FromSeconds(Convert.ToDouble(retryAfterValues.FirstOrDefault()));

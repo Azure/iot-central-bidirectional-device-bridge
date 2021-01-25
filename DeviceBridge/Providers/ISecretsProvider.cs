@@ -27,6 +27,8 @@ namespace DeviceBridge.Providers
 
         Task<SecretBundle> GetEncryptionKey(Logger logger, string version = null);
 
+        Task PutEncryptionKey(Logger logger, string value);
+
         Task<IDictionary<string, SecretBundle>> GetEncryptionKeyVersions(Logger logger);
     }
 }
