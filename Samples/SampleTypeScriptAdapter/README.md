@@ -6,6 +6,12 @@ Failures are logged in the same Log Analytics workspace used by the Bridge core 
 > NOTE: this code should only be used as a sample reference for how to build adapters for the Device
 Bridge. It should not be used in a production setting without proper testing and error handling.
 
+## Deployment template
+The template below is a modified version of the deployment template in the repository root to include the adapter container.
+It modifies the webserver configuration to route traffic to the adapter instead of the Bridge core module.
+
+[![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fiot-for-all%2Fiotc-device-bridge%2Fmain%2FSamples%2FSampleTypeScriptAdapter%2Fazuredeploy.json)
+
 ## APIs
 
 ### Subscribe
