@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.KeyVault;
@@ -83,7 +82,7 @@ namespace DeviceBridge.Providers
             return await GetSecretAsync(logger, IotcEncryptionKey, version);
         }
 
-        public async Task PutEncyptionKey(Logger logger, string value)
+        public async Task PutEncryptionKey(Logger logger, string value)
         {
             await PutSecretAsync(logger, IotcEncryptionKey, value);
         }

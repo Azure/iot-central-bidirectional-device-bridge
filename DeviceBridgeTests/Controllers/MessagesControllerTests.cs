@@ -20,7 +20,7 @@ namespace DeviceBridge.Controllers.Tests
         private MessagesController _messagesController;
 
         [SetUp]
-        public async Task Setup()
+        public void Setup()
         {
             _bridgeServiceMock = new Mock<IBridgeService>();
             _messagesController = new MessagesController(LogManager.GetCurrentClassLogger(), _bridgeServiceMock.Object);
