@@ -71,7 +71,7 @@ namespace DeviceBridge
             services.AddSingleton<ISecretsProvider>(secretsService);
             services.AddSingleton(_logger);
             services.AddSingleton<IEncryptionService, EncryptionService>();
-            services.AddSingleton<IStorageProvider>(provider => new StorageProvider(sqlConnectionString, provider.GetRequiredService<EncryptionService>()));
+            services.AddSingleton<IStorageProvider>(provider => new StorageProvider(sqlConnectionString, provider.GetRequiredService<IEncryptionService>()));
             services.AddSingleton(provider => new ConnectionManager(provider.GetRequiredService<Logger>(), idScope, sasKey, maxPoolSize, provider.GetRequiredService<IStorageProvider>()));
             services.AddSingleton<ISubscriptionService>(provider => new SubscriptionService(provider.GetRequiredService<Logger>(), provider.GetRequiredService<ConnectionManager>(), provider.GetRequiredService<IStorageProvider>(), provider.GetRequiredService<IHttpClientFactory>(), rampupBatchSize, rampupBatchIntervalMs));
             services.AddSingleton<IBridgeService, BridgeService>();
