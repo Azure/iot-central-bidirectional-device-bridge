@@ -13,9 +13,9 @@ namespace DeviceBridge.Services
     public class SubscriptionStartupHostedService : IHostedService
     {
         private readonly Logger _logger;
-        private readonly SubscriptionService _subscriptionService;
+        private readonly ISubscriptionService _subscriptionService;
 
-        public SubscriptionStartupHostedService(Logger logger, SubscriptionService subscriptionService)
+        public SubscriptionStartupHostedService(Logger logger, ISubscriptionService subscriptionService)
         {
             _logger = logger;
             _subscriptionService = subscriptionService;
