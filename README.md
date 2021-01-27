@@ -31,11 +31,11 @@ such as data transformation and protocol adapter modules.
   * [Device provisioning](#device-provisioning)
   * [Subscription callback retries](#subscription-callback-retries)
 - [Load and performance](#load-and-performance)
-  * [SSL certificate limits](#ssl-certificate-limits)
   * [Instance restarts and reconnection speed](#instance-restarts-and-reconnection-speed)
   * [Multiplexing and connection pool](#multiplexing-and-connection-pool)
 - [Monitoring](#monitoring)
 - [Encryption key rotation](#encryption-key-rotation)
+- [SSL and HTTPS](#ssl-and-https)
 - [Custom adapters](#custom-adapters)
 
 ## Deployment instructions
@@ -50,11 +50,9 @@ image to ACR can be found [here](https://docs.microsoft.com/en-us/azure/containe
 Note the image name and the ACR credentials, which are necessary in the next steps.
 
 ### 2 - Open the deployment template in Azure Portal
-Open the [template deployment page in the Azure Portal](https://portal.azure.com/#create/Microsoft.Template), click `Build your own template in the editor`.
-In the edit template page, paste the contents of the `azuredeploy.json` file in this repository in the editor window and click save.
+Use the button below to open the deployment template in the Azure Portal:
 
-![Custom deployment](Docs/Assets/custom_deployment.png "custom deployment")
-![Edit template](Docs/Assets/edit_template.png "Edit template")
+[![Deploy to Azure](http://azuredeploy.net/deploybutton.png)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2Fiot-for-all%2Fiotc-device-bridge%2Fmain%2Fazuredeploy.json)
 
 ### 3 - Deployment parameters
 
@@ -95,6 +93,7 @@ you can find the newly provisioned resources in the target resource group.
 
 ## What is being provisioned
 The template in this solution will provision the following resources to your Azure subscription:
+- Azure Storage Account - for persistent volumes
 - Key Vault - to store all secrets
 - Azure SQL - to store device and subscription data
 - Azure container instance - main solution
@@ -308,16 +307,6 @@ on different usage patterns, such as how often devices send or subscribe to even
 The specific setup being provisioned (e.g., different container sizes) will also directly influence the results. When deploying a new setup,
 make sure you evaluate the performance considerations described in the following sections.
 
-### SSL certificate limits
-The Caddy webserver deployed in the solution uses [Let's Encrypt](https://letsencrypt.org/) to automatically obtain an HTTPS certificate.
-This service is free, but has a current limit of SSL 5 certificates per week per endpoint. Because the containers used by this solution
-deploy non-persistent volumes, if the container group is manually restarted more than 5 times in a week (for instance during development phase),
-SSL certificate acquisition will fail and a new solution with a new endpoint will need to be deployed.
-
-To avoid this limitation, you may choose to modify the solution to [use persistent storage](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-volume-azure-files),
-use a different [certificate authority and webserver configuration](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-container-group-ssl),
-or use Let's Encrypt staging environment during development (see https://letsencrypt.org/docs/rate-limits/ for more information).
-
 ### Instance restarts and reconnection speed
 If the service instance restarts, the Bridge will automatically reconnect any devices with an active subscription. During this period,
 all subscriptions will have a `Starting` status. The speed at which the Bridge reconnects devices is set by default to 150 connections per second.
@@ -362,6 +351,11 @@ starts with `iotc-container-groups-setup-`). Once started, the setup container w
 use it to reencrypt all subscriptions stored in the database (you can follow the progress in the container logs `Container group > Containers > Logs`).
 Once reencryption has finished, you can restart the main Bridge container (the container group name starts with `iotc-container-groups-`)
 to make sure that it starts using the new key for new subscriptions.
+
+## SSL and HTTPS
+The Caddy webserver deployed in the solution uses [Let's Encrypt](https://letsencrypt.org/) to automatically obtain an HTTPS certificate.
+This service is free. If desired, you may use a different
+[certificate authority and webserver configuration](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-container-group-ssl).
 
 ## Custom adapters
 One of the possible ways to extend the functionality of this Bridge is through a custom adapter deployed as a sidecar container.
