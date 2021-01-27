@@ -26,9 +26,9 @@ namespace DeviceBridge.Providers
         private const int BulkCopyBatchSize = 1000;
 
         private readonly string _connectionString;
-        private readonly EncryptionService _encryptionService;
+        private readonly IEncryptionService _encryptionService;
 
-        public StorageProvider(string connectionString, EncryptionService encryptionService)
+        public StorageProvider(string connectionString, IEncryptionService encryptionService)
         {
             _connectionString = connectionString;
             _encryptionService = encryptionService;

@@ -13,7 +13,7 @@ using NLog;
 
 namespace DeviceBridge.Services
 {
-    public class EncryptionService
+    public class EncryptionService : IEncryptionService
     {
         private readonly ISecretsProvider _secretsProvider;
         private IDictionary<string, SecretBundle> _encryptionKeys;

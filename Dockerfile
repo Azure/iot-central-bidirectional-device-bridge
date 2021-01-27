@@ -1,7 +1,7 @@
 # Use SDK to build release package
 FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-img
 WORKDIR /app
-COPY . ./
+COPY DeviceBridge ./
 RUN dotnet --info
 RUN dotnet publish -c Release -o out
 
