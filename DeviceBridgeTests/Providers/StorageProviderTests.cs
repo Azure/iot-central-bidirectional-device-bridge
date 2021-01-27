@@ -32,6 +32,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Continuously calls getDeviceSubscriptionsPaged stored procedure to return all subscriptions in the DB")]
         public async Task ListAllSubscriptionsOrderedByDeviceId()
         {
             using (ShimsContext.Create())
@@ -81,6 +82,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Executes a select to get subscriptions of all types for the device Id received as parameter")]
         public async Task ListDeviceSubscriptions()
         {
             using (ShimsContext.Create())
@@ -101,6 +103,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Executes a select to get the subscription for the type and device Id received as parameter")]
         public async Task GetDeviceSubscription()
         {
             using (ShimsContext.Create())
@@ -120,6 +123,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Calls upsertDeviceSubscription to create a subscription of the given type, device Id, and callback URL")]
         public async Task CreateOrUpdateDeviceSubscription()
         {
             using (ShimsContext.Create())
@@ -143,6 +147,7 @@ namespace DeviceBridge.Providers.Tests
 
 
         [Test]
+        [Description("Executes a delete to remove a single subscription of a given type for the given device Id")]
         public async Task DeleteDeviceSubscription()
         {
             using (ShimsContext.Create())
@@ -154,6 +159,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Executes a filtered delete to remove all subscriptions older than a 7 days")]
         public async Task GcHubCache()
         {
             using (ShimsContext.Create())
@@ -171,6 +177,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Uses a bulk copy and update to renew the timestamp field of all device Ids received as parameter")]
         public async Task RenewHubCacheEntries()
         {
             using (ShimsContext.Create())
@@ -207,6 +214,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Calls upsertHubCacheEntry to insert a hub cache entry for a single device")]
         public async Task AddOrUpdateHubCacheEntry()
         {
             using (ShimsContext.Create())
@@ -223,6 +231,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Continuously calls getHubCacheEntriesPaged to get all entries from the HubCache table")]
         public async Task ListHubCacheEntries()
         {
             using (ShimsContext.Create())
@@ -272,6 +281,7 @@ namespace DeviceBridge.Providers.Tests
         }
 
         [Test]
+        [Description("Executes an arbitrary SQL statement in a connection")]
         public async Task Exec()
         {
             using (ShimsContext.Create())
