@@ -61,7 +61,7 @@ namespace DeviceBridge.Services.Tests
                 SemaphoreSlim openFailSemaphore = null;
                 CaptureSemaphoreOnWait((semaphore) => openFailSemaphore = semaphore);
                 await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("device-to-fail-id"));
-                Assert.AreEqual(openFailSemaphore.CurrentCount, 1);
+                Assert.AreEqual(1, openFailSemaphore.CurrentCount);
 
                 // Check that a device connection attempt time is registered before it enters the critical section.
                 var startTime = DateTime.Now;
@@ -90,18 +90,18 @@ namespace DeviceBridge.Services.Tests
                 ShimDeviceClientAndCaptureClose(() => closeCount++);
                 await connectionManager.AssertDeviceConnectionOpenAsync("permanent-device-id");
                 await connectionManager.AssertDeviceConnectionClosedAsync("permanent-device-id", true);
-                Assert.AreEqual(closeCount, 0, "Closing a temporary connection should not have closed a permanent connection");
+                Assert.AreEqual(0, closeCount, "Closing a temporary connection should not have closed a permanent connection");
                 await connectionManager.AssertDeviceConnectionClosedAsync("permanent-device-id");
-                Assert.AreEqual(closeCount, 1);
+                Assert.AreEqual(1, closeCount);
 
                 // If temporary is set to true, creates a temporary connection if one doesn't exist, without creating a permanent connection.
                 closeCount = 0;
                 await connectionManager.AssertDeviceConnectionOpenAsync("temporary-device-id", true);
                 ShimUtcNowAhead(20); // Move the clock so the temporary connection will expire.
                 await connectionManager.AssertDeviceConnectionClosedAsync("temporary-device-id");
-                Assert.AreEqual(closeCount, 0, "Closing a permanent connection should not have closed a temporary connection");
+                Assert.AreEqual(0, closeCount, "Closing a permanent connection should not have closed a temporary connection");
                 await connectionManager.AssertDeviceConnectionClosedAsync("temporary-device-id", true);
-                Assert.AreEqual(closeCount, 1);
+                Assert.AreEqual(1, closeCount);
 
                 // If temporary is set to true, renews a temporary connection if one already exists, without creating a permanent connection.
                 closeCount = 0;
@@ -111,10 +111,10 @@ namespace DeviceBridge.Services.Tests
                 await connectionManager.AssertDeviceConnectionOpenAsync("renew-device-id", true); // Move the clock 5min and renew connection for another ~10min, so total connection duration is ~15min.
                 ShimUtcNowAhead(12);
                 await connectionManager.AssertDeviceConnectionClosedAsync("renew-device-id", true);
-                Assert.AreEqual(closeCount, 0, "Temporary connection should not have been closed after 12min, as it was renewed for ~15min");
+                Assert.AreEqual(0, closeCount, "Temporary connection should not have been closed after 12min, as it was renewed for ~15min");
                 ShimUtcNowAhead(18);
                 await connectionManager.AssertDeviceConnectionClosedAsync("renew-device-id", true);
-                Assert.AreEqual(closeCount, 1, "Temporary connection should have been closed after 18min.");
+                Assert.AreEqual(1, closeCount, "Temporary connection should have been closed after 18min.");
             }
         }
 
@@ -134,12 +134,12 @@ namespace DeviceBridge.Services.Tests
                 // If recreateFailedClient is set to false (default), don't try to recreate a client in a permanent failure state
                 ShimDeviceClientAndCaptureClose(() => closeCount++);
                 await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id");
-                Assert.AreEqual(closeCount, 0);
+                Assert.AreEqual(0, closeCount);
 
                 // If recreateFailedClient is set to true, tries to recreate a client in a permanent failure state
                 ShimDeviceClientAndCaptureClose(() => closeCount++);
                 await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id", false, true);
-                Assert.AreEqual(closeCount, 1);
+                Assert.AreEqual(1, closeCount);
             }
         }
 
@@ -302,7 +302,7 @@ namespace DeviceBridge.Services.Tests
                 using (var hmac = new HMACSHA256(Encoding.UTF8.GetBytes("test-sas-key")))
                 {
                     var derivedKey = Convert.ToBase64String(hmac.ComputeHash(Encoding.UTF8.GetBytes("test-device-id")));
-                    Assert.AreEqual(connStr, $"HostName=test-hub.azure.devices.net;DeviceId=test-device-id;SharedAccessKey={derivedKey}");
+                    Assert.AreEqual($"HostName=test-hub.azure.devices.net;DeviceId=test-device-id;SharedAccessKey={derivedKey}", connStr);
                 }
 
                 // Sets connection status change handler that updates local device connection status and calls user-defined
@@ -314,8 +314,8 @@ namespace DeviceBridge.Services.Tests
                 await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
                 Assert.True(statusCallbackCalled);
                 var status = connectionManager.GetDeviceStatus("test-device-id");
-                Assert.AreEqual(status?.status, ConnectionStatus.Connected);
-                Assert.AreEqual(status?.reason, ConnectionStatusChangeReason.Connection_Ok);
+                Assert.AreEqual(ConnectionStatus.Connected, status?.status);
+                Assert.AreEqual(ConnectionStatusChangeReason.Connection_Ok, status?.reason);
 
                 // Correctly sets desired property update, methods, and C2D message callbacks if they exist.
                 connectionManager = CreateConnectionManager();
@@ -389,9 +389,9 @@ namespace DeviceBridge.Services.Tests
                 Assert.True(c2dCallbackCalled);
 
                 // Check that callback Ids are correctly returned.
-                Assert.AreEqual(connectionManager.GetCurrentMethodCallbackId("test-device-id"), "method-callback-id");
-                Assert.AreEqual(connectionManager.GetCurrentMessageCallbackId("test-device-id"), "message-callback-id");
-                Assert.AreEqual(connectionManager.GetCurrentDesiredPropertyUpdateCallbackId("test-device-id"), "property-callback-id");
+                Assert.AreEqual("method-callback-id", connectionManager.GetCurrentMethodCallbackId("test-device-id"));
+                Assert.AreEqual("message-callback-id", connectionManager.GetCurrentMessageCallbackId("test-device-id"));
+                Assert.AreEqual("property-callback-id", connectionManager.GetCurrentDesiredPropertyUpdateCallbackId("test-device-id"));
 
                 // Check that callbacks are properly removed.
                 capturedMethodCallback = null;
@@ -409,7 +409,7 @@ namespace DeviceBridge.Services.Tests
                 Assert.AreNotEqual(capturedPropertyUpdateCallback, oldCapturedPropertyUpdateCallback); // Removing the property callback just replaces it with an empty one
 
                 // Check that all callback register/unregister operations locked on the same semaphore as the connection open operation
-                Assert.AreEqual(capturedSemaphores.Count, 7 /* 1 open, 3 register, 3 unregister */);
+                Assert.AreEqual(7 /* 1 open, 3 register, 3 unregister */, capturedSemaphores.Count);
                 Assert.IsNull(capturedSemaphores.Find(s => s != capturedSemaphores[0]));
 
                 // Check that C2D messages are acknowledged according to the callback result.
@@ -465,7 +465,7 @@ namespace DeviceBridge.Services.Tests
                 ShimDpsAndCaptureRegistration("test-hub.azure.devices.net", payload => capturedPayload = payload);
                 const string testModelId = "test-model-id";
                 await connectionManager.StandaloneDpsRegistrationAsync(LogManager.GetCurrentClassLogger(), "test-device-id", testModelId);
-                Assert.AreEqual(capturedPayload.JsonData, $"{{\"modelId\":\"{testModelId}\"}}");
+                Assert.AreEqual($"{{\"modelId\":\"{testModelId}\"}}", capturedPayload.JsonData);
 
                 // Check that hub was cached in the DB.
                 _storageProviderMock.Verify(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), "test-device-id", "test-hub.azure.devices.net"), Times.Once);
@@ -495,12 +495,12 @@ namespace DeviceBridge.Services.Tests
 
                 // Check that the correct message is sent.
                 var body = JsonSerializer.Deserialize<Dictionary<string, string>>(Encoding.UTF8.GetString(message.GetBytes()));
-                Assert.AreEqual(body["telemetry"], "val1");
-                Assert.AreEqual(message.ContentEncoding, Encoding.UTF8.WebName);
-                Assert.AreEqual(message.ContentType, "application/json");
-                Assert.AreEqual(message.ComponentName, "test-component");
-                Assert.AreEqual(message.Properties["prop"], "val2");
-                Assert.AreEqual(message.CreationTimeUtc, testCreationTime);
+                Assert.AreEqual("val1", body["telemetry"]);
+                Assert.AreEqual(Encoding.UTF8.WebName, message.ContentEncoding);
+                Assert.AreEqual("application/json", message.ContentType);
+                Assert.AreEqual("test-component", message.ComponentName);
+                Assert.AreEqual("val2", message.Properties["prop"]);
+                Assert.AreEqual(testCreationTime, message.CreationTimeUtc);
             }
         }
 
@@ -519,7 +519,7 @@ namespace DeviceBridge.Services.Tests
                 ShimDps("test-hub.azure.devices.net");
                 await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
                 var returnedTwin = await connectionManager.GetTwinAsync(LogManager.GetCurrentClassLogger(), "test-device-id", default);
-                Assert.AreEqual(returnedTwin, testTwin);
+                Assert.AreEqual(testTwin, returnedTwin);
             }
         }
 
@@ -540,7 +540,7 @@ namespace DeviceBridge.Services.Tests
 
                 // Assert that patch has correct contents.
                 var body = JsonSerializer.Deserialize<Dictionary<string, string>>(patch.ToJson());
-                Assert.AreEqual(body["prop"], "val2");
+                Assert.AreEqual("val2", body["prop"]);
             }
         }
 
@@ -560,7 +560,7 @@ namespace DeviceBridge.Services.Tests
                 await connectionManager.AssertDeviceConnectionOpenAsync("device2");
                 await connectionManager.AssertDeviceConnectionOpenAsync("device3");
                 connectionManager.Dispose();
-                Assert.AreEqual(disposeCount, 3);
+                Assert.AreEqual(3, disposeCount);
             }
         }
 

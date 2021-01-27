@@ -54,7 +54,7 @@ namespace DeviceBridge.Providers.Tests
                     var nextPageSize = allSubs.Count < 10 ? allSubs.Count : 10;
                     currentPage = allSubs.Take(nextPageSize).ToList();
                     allSubs.RemoveRange(0, nextPageSize);
-                    Assert.AreEqual(cmd.CommandType, CommandType.StoredProcedure);
+                    Assert.AreEqual(CommandType.StoredProcedure, cmd.CommandType);
                 });
 
                 // Get the next item when ReadAsync is called.
@@ -75,7 +75,7 @@ namespace DeviceBridge.Providers.Tests
                 ShimItemGetString(() => currentSub);
 
                 var result = await _storageProvider.ListAllSubscriptionsOrderedByDeviceId(LogManager.GetCurrentClassLogger());
-                Assert.AreEqual(result.FindAll(s => s.DeviceId == "test-device" && s.CallbackUrl == "http://test" && s.SubscriptionType == DeviceSubscriptionType.DesiredProperties && s.CreatedAt == testDateTime).Count, 55);
+                Assert.AreEqual(55, result.FindAll(s => s.DeviceId == "test-device" && s.CallbackUrl == "http://test" && s.SubscriptionType == DeviceSubscriptionType.DesiredProperties && s.CreatedAt == testDateTime).Count);
                 _encriptionServiceMock.Verify(p => p.Decrypt(It.IsAny<Logger>(), It.IsAny<string>()), Times.Exactly(55));
             }
         }
@@ -94,7 +94,7 @@ namespace DeviceBridge.Providers.Tests
                 ShimItemGetString(GetTestSubscription(testDateTime));
 
                 var result = await _storageProvider.ListDeviceSubscriptions(LogManager.GetCurrentClassLogger(), "test-device");
-                Assert.AreEqual(result.Count, 1);
+                Assert.AreEqual(1, result.Count);
                 Assert.True(result[0].DeviceId == "test-device" && result[0].CallbackUrl == "http://test" && result[0].SubscriptionType == DeviceSubscriptionType.DesiredProperties && result[0].CreatedAt == testDateTime);
                 _encriptionServiceMock.Verify(p => p.Decrypt(It.IsAny<Logger>(), "http://test"), Times.Once());
             }
@@ -130,7 +130,7 @@ namespace DeviceBridge.Providers.Tests
                 var testDateTime = DateTime.Now;
                 ShimExecuteNonQuery("upsertDeviceSubscription", new Dictionary<string, string>() { { "@DeviceId", "test-device" }, { "@SubscriptionType", "DesiredProperties" }, { "@CallbackUrl", "http://test" } }, cmd =>
                 {
-                    Assert.AreEqual(cmd.CommandType, CommandType.StoredProcedure);
+                    Assert.AreEqual(CommandType.StoredProcedure, cmd.CommandType);
                     cmd.Parameters.RemoveAt("@CreatedAt");
                     cmd.Parameters.Add(new SqlParameter("@CreatedAt", testDateTime));
                 });
@@ -164,7 +164,7 @@ namespace DeviceBridge.Providers.Tests
                     var expected = @"DELETE c FROM HubCache c
                                     LEFT JOIN DeviceSubscriptions s ON s.DeviceId = c.DeviceId
                                     WHERE (s.DeviceId IS NULL) AND (c.RenewedAt < DATEADD(day, -7, GETUTCDATE()))";
-                    Assert.AreEqual(Regex.Replace(cmd.CommandText, @"\s+", " "), Regex.Replace(expected, @"\s+", " "));
+                    Assert.AreEqual(Regex.Replace(expected, @"\s+", " "), Regex.Replace(cmd.CommandText, @"\s+", " "));
                 });
                 await _storageProvider.GcHubCache(LogManager.GetCurrentClassLogger());
             }
@@ -181,13 +181,13 @@ namespace DeviceBridge.Providers.Tests
                 // Once data is sent to server, check that we remove the temp table.
                 System.Data.SqlClient.Fakes.ShimSqlBulkCopy.AllInstances.WriteToServerAsyncDataTable = (bulkCopy, dt) =>
                 {
-                    Assert.AreEqual(bulkCopy.BulkCopyTimeout, 60);
-                    Assert.AreEqual(bulkCopy.BatchSize, 1000);
-                    Assert.AreEqual(bulkCopy.DestinationTableName, "#CacheEntriesToRenewTmpTable");
+                    Assert.AreEqual(60, bulkCopy.BulkCopyTimeout);
+                    Assert.AreEqual(1000, bulkCopy.BatchSize);
+                    Assert.AreEqual("#CacheEntriesToRenewTmpTable", bulkCopy.DestinationTableName);
 
-                    Assert.AreEqual(dt.Rows[0]["DeviceId"], "test-device-1");
-                    Assert.AreEqual(dt.Rows[1]["DeviceId"], "test-device-2");
-                    Assert.AreEqual(dt.Rows[2]["DeviceId"], "test-device-3");
+                    Assert.AreEqual("test-device-1", dt.Rows[0]["DeviceId"]);
+                    Assert.AreEqual("test-device-2", dt.Rows[1]["DeviceId"]);
+                    Assert.AreEqual("test-device-3", dt.Rows[2]["DeviceId"]);
 
                     ShimExecuteNonQuery(null, null, cmd =>
                     {
@@ -195,8 +195,8 @@ namespace DeviceBridge.Providers.Tests
                                         FROM HubCache
                                         INNER JOIN #CacheEntriesToRenewTmpTable Temp ON (Temp.DeviceId = HubCache.DeviceId)
                                         DROP TABLE #CacheEntriesToRenewTmpTable";
-                        Assert.AreEqual(Regex.Replace(cmd.CommandText, @"\s+", " "), Regex.Replace(expected, @"\s+", " "));
-                        Assert.AreEqual(cmd.CommandTimeout, 300);
+                        Assert.AreEqual(Regex.Replace(expected, @"\s+", " "), Regex.Replace(cmd.CommandText, @"\s+", " "));
+                        Assert.AreEqual(300, cmd.CommandTimeout);
                     });
 
                     return Task.CompletedTask;
@@ -215,7 +215,7 @@ namespace DeviceBridge.Providers.Tests
 
                 ShimExecuteNonQuery("upsertHubCacheEntry", new Dictionary<string, string>() { { "@DeviceId", "test-device" }, { "@Hub", "test-hub" } }, cmd =>
                 {
-                    Assert.AreEqual(cmd.CommandType, CommandType.StoredProcedure);
+                    Assert.AreEqual(CommandType.StoredProcedure, cmd.CommandType);
                 });
 
                 await _storageProvider.AddOrUpdateHubCacheEntry(LogManager.GetCurrentClassLogger(), "test-device", "test-hub");
@@ -246,7 +246,7 @@ namespace DeviceBridge.Providers.Tests
                     var nextPageSize = allHubs.Count < 10 ? allHubs.Count : 10;
                     currentPage = allHubs.Take(nextPageSize).ToList();
                     allHubs.RemoveRange(0, nextPageSize);
-                    Assert.AreEqual(cmd.CommandType, CommandType.StoredProcedure);
+                    Assert.AreEqual(CommandType.StoredProcedure, cmd.CommandType);
                 });
 
                 // Get the next item when ReadAsync is called.
@@ -267,7 +267,7 @@ namespace DeviceBridge.Providers.Tests
                 ShimItemGetString(() => currentHub);
 
                 var result = await _storageProvider.ListHubCacheEntries(LogManager.GetCurrentClassLogger());
-                Assert.AreEqual(result.FindAll(s => s.DeviceId == "test-device" && s.Hub == "test-hub").Count, 55);
+                Assert.AreEqual(55, result.FindAll(s => s.DeviceId == "test-device" && s.Hub == "test-hub").Count);
             }
         }
 
@@ -291,13 +291,13 @@ namespace DeviceBridge.Providers.Tests
         {
             Func<SqlCommand, Task<SqlDataReader>> shim = (SqlCommand cmd) =>
             {
-                Assert.AreEqual(cmd.CommandText, cmdText);
+                Assert.AreEqual(cmdText, cmd.CommandText);
 
                 if (parameters != null)
                 {
                     foreach (var entry in parameters)
                     {
-                        Assert.AreEqual(cmd.Parameters[entry.Key].Value, entry.Value);
+                        Assert.AreEqual(entry.Value, cmd.Parameters[entry.Key].Value);
                     }
                 }
 
@@ -339,14 +339,14 @@ namespace DeviceBridge.Providers.Tests
             {
                 if (cmdText != null)
                 {
-                    Assert.AreEqual(cmd.CommandText, cmdText);
+                    Assert.AreEqual(cmdText, cmd.CommandText);
                 }
 
                 if (parameters != null)
                 {
                     foreach (var entry in parameters)
                     {
-                        Assert.AreEqual(cmd.Parameters[entry.Key].Value, entry.Value);
+                        Assert.AreEqual(entry.Value, cmd.Parameters[entry.Key].Value);
                     }
                 }
 
