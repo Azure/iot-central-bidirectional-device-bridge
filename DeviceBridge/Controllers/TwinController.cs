@@ -18,9 +18,9 @@ namespace DeviceBridge.Controllers
     public class TwinController : BaseController
     {
         private readonly ISubscriptionService _subscriptionService;
-        private readonly BridgeService _bridgeService;
+        private readonly IBridgeService _bridgeService;
 
-        public TwinController(Logger logger, ISubscriptionService subscriptionService, BridgeService bridgeService)
+        public TwinController(Logger logger, ISubscriptionService subscriptionService, IBridgeService bridgeService)
             : base(logger)
         {
             _subscriptionService = subscriptionService;

@@ -13,9 +13,9 @@ namespace DeviceBridge.Services
     public class ExpiredConnectionCleanupHostedService : IHostedService
     {
         private readonly Logger _logger;
-        private readonly ConnectionManager _connectionManager;
+        private readonly IConnectionManager _connectionManager;
 
-        public ExpiredConnectionCleanupHostedService(Logger logger, ConnectionManager connectionManager)
+        public ExpiredConnectionCleanupHostedService(Logger logger, IConnectionManager connectionManager)
         {
             _logger = logger;
             _connectionManager = connectionManager;

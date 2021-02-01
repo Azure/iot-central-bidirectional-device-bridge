@@ -2,6 +2,7 @@
 
 using System;
 using System.Threading.Tasks;
+using DeviceBridge.Common;
 using DeviceBridge.Providers;
 using DeviceBridge.Services;
 using NLog;
