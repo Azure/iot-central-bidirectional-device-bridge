@@ -4,6 +4,7 @@ using System;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
+using DeviceBridge.Common;
 using DeviceBridge.Providers;
 using DeviceBridge.Services;
 using NLog;

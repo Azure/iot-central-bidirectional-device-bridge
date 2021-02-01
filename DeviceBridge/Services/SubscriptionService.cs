@@ -31,14 +31,14 @@ namespace DeviceBridge.Services
         private readonly uint _rampupBatchSize;
         private readonly uint _rampupBatchIntervalMs;
         private readonly IStorageProvider _storageProvider;
-        private readonly ConnectionManager _connectionManager;
+        private readonly IConnectionManager _connectionManager;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly Logger _logger;
         private readonly ConcurrentDictionary<string, List<DeviceSubscription>> dataSubscriptionsToInitialize;
         private ConcurrentDictionary<string, SemaphoreSlim> _dbAndConnectionStateSyncSemaphores = new ConcurrentDictionary<string, SemaphoreSlim>();
         private ConcurrentDictionary<string, SemaphoreSlim> _connectionStatusSubscriptionSyncSemaphores = new ConcurrentDictionary<string, SemaphoreSlim>();
 
-        public SubscriptionService(Logger logger, ConnectionManager connectionManager, IStorageProvider storageProvider, IHttpClientFactory httpClientFactory, uint rampupBatchSize, uint rampupBatchIntervalMs)
+        public SubscriptionService(Logger logger, IConnectionManager connectionManager, IStorageProvider storageProvider, IHttpClientFactory httpClientFactory, uint rampupBatchSize, uint rampupBatchIntervalMs)
         {
             _logger = logger;
             _storageProvider = storageProvider;

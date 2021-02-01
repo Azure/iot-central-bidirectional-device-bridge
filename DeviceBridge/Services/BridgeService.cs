@@ -11,9 +11,9 @@ namespace DeviceBridge.Services
 {
     public class BridgeService : IBridgeService
     {
-        private readonly ConnectionManager _connectionManager;
+        private readonly IConnectionManager _connectionManager;
 
-        public BridgeService(ConnectionManager connectionManager)
+        public BridgeService(IConnectionManager connectionManager)
         {
             _connectionManager = connectionManager;
         }
