@@ -21,10 +21,10 @@ namespace DeviceBridge.Services
 
         private readonly Logger _logger;
         private readonly IStorageProvider _storageProvider;
-        private readonly ConnectionManager _connectionManager;
+        private readonly IConnectionManager _connectionManager;
         private Timer _timer;
 
-        public HubCacheGcHostedService(Logger logger, IStorageProvider storageProvider, ConnectionManager connectionManager)
+        public HubCacheGcHostedService(Logger logger, IStorageProvider storageProvider, IConnectionManager connectionManager)
         {
             _logger = logger;
             _storageProvider = storageProvider;
