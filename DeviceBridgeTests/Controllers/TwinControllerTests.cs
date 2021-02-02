@@ -37,6 +37,7 @@ namespace DeviceBridge.Controllers.Tests
         }
 
         [Test]
+        [Description("Checks that GetTwin returns the twin as is from ConnectionManager for the specified device")]
         public async Task TestGetTwin()
         {
             _bridgeServiceMock.Setup(p => p.GetTwin(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>())).Returns(Task.FromResult(new Twin(new TwinProperties()
@@ -48,6 +49,7 @@ namespace DeviceBridge.Controllers.Tests
         }
 
         [Test]
+        [Description("Checks that TestUpdateReportedProperties passes the property patch through to ConnectionManager")]
         public async Task TestUpdateReportedProperties()
         {
             var body = new ReportedPropertiesPatch()

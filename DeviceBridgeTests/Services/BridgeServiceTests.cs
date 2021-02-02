@@ -22,6 +22,7 @@ namespace DeviceBridge.Services.Tests
         }
 
         [Test]
+        [Description("Checks that SendTelemetry ensures that a temporary connection is open then passes the telemetry message to ConnectionManager")]
         public async Task SendTelemetry()
         {
             _connectionManagerMock.Invocations.Clear();
@@ -35,6 +36,7 @@ namespace DeviceBridge.Services.Tests
         }
 
         [Test]
+        [Description("Checks that GetTwin ensures that a temporary connection is open then requests the twin from ConnectionManager")]
         public async Task GetTwin()
         {
             _connectionManagerMock.Invocations.Clear();
@@ -48,6 +50,7 @@ namespace DeviceBridge.Services.Tests
         }
 
         [Test]
+        [Description("Checks that UpdateReportedProperties ensures that a temporary connection is open then passes the property patch to ConnectionManager")]
         public async Task UpdateReportedProperties()
         {
             _connectionManagerMock.Invocations.Clear();
