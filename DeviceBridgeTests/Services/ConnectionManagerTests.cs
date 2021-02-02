@@ -27,11 +27,6 @@ namespace DeviceBridge.Services.Tests
     {
         private Mock<IStorageProvider> _storageProviderMock = new Mock<IStorageProvider>();
 
-        [SetUp]
-        public async Task Setup()
-        {
-        }
-
         [Test]
         public async Task AssertDeviceConnectionOpenAsyncMutualExclusion()
         {
