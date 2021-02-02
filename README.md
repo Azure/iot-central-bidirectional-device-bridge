@@ -113,6 +113,9 @@ The HTTP endpoints are protected by the API key provided when the solution was p
 In what follows we give a quick overview of the functionalities available through the API. For a full description of the
 endpoints and data types as well as sample requests and responses, refer to the API swagger under `Docs/swagger.json`.
 
+> NOTE: the API operations below will cause the target device to be automatically registered in IoT Central.
+For more information about device registration see the [device provisioning section](#device-provisioning).
+
 ### Device to cloud messages
 The Bridge can send messages to Azure IoT on behalf of a device.
 The main component of a message is the `data` field. Optionally, the request can include `componentName`, `properties`, and a `creationTimeUtc`.
