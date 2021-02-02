@@ -16,11 +16,6 @@ namespace DeviceBridge.Services.Tests
     {
         private Mock<IConnectionManager> _connectionManagerMock = new Mock<IConnectionManager>();
 
-        [SetUp]
-        public async Task Setup()
-        {
-        }
-
         [Test]
         [Description("Checks that SendTelemetry ensures that a temporary connection is open then passes the telemetry message to ConnectionManager")]
         public async Task SendTelemetry()

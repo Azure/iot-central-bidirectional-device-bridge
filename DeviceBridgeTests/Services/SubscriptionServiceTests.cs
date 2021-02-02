@@ -27,11 +27,6 @@ namespace DeviceBridge.Services.Tests
         private Mock<IHttpClientFactory> _httpClientFactoryMock = new Mock<IHttpClientFactory>();
         private Mock<IConnectionManager> _connectionManagerMock = new Mock<IConnectionManager>();
 
-        [SetUp]
-        public async Task Setup()
-        {
-        }
-
         [Test]
         [Description("Verifies that the constructor fetches and initializes all subscriptions from the DB")]
         public async Task SubscriptionStartupInitializationFromDB()
