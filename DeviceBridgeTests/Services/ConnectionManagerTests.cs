@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using DeviceBridge.Common.Exceptions;
 using DeviceBridge.Models;
 using DeviceBridge.Providers;
+using DeviceBridgeTests.Common;
 using Microsoft.Azure.Devices.Client;
 using Microsoft.Azure.Devices.Client.Exceptions;
 using Microsoft.Azure.Devices.Provisioning.Client;
@@ -26,11 +27,6 @@ namespace DeviceBridge.Services.Tests
     {
         private Mock<IStorageProvider> _storageProviderMock = new Mock<IStorageProvider>();
 
-        [SetUp]
-        public async Task Setup()
-        {
-        }
-
         [Test]
         public async Task AssertDeviceConnectionOpenAsyncMutualExclusion()
         {
@@ -40,18 +36,18 @@ namespace DeviceBridge.Services.Tests
 
                 // Check that client open and close operations for the same device block on the same mutex.
                 SemaphoreSlim openSemaphore = null, closeSemaphore = null;
-                CaptureSemaphoreOnWait((semaphore) => openSemaphore = semaphore);
+                TestUtils.CaptureSemaphoreOnWait((semaphore) => openSemaphore = semaphore);
                 ShimDps("test-hub.azure.devices.net");
                 ShimDeviceClient();
                 await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                CaptureSemaphoreOnWait((semaphore) => closeSemaphore = semaphore);
+                TestUtils.CaptureSemaphoreOnWait((semaphore) => closeSemaphore = semaphore);
                 await connectionManager.AssertDeviceConnectionClosedAsync("test-device-id");
                 Assert.IsNotNull(openSemaphore);
                 Assert.AreEqual(openSemaphore, closeSemaphore);
 
                 // Check that client open operations for different devices block on different mutexes.
                 SemaphoreSlim anotherDeviceOpenSemaphore = null;
-                CaptureSemaphoreOnWait((semaphore) => anotherDeviceOpenSemaphore = semaphore);
+                TestUtils.CaptureSemaphoreOnWait((semaphore) => anotherDeviceOpenSemaphore = semaphore);
                 await connectionManager.AssertDeviceConnectionOpenAsync("another-test-device-id");
                 Assert.IsNotNull(anotherDeviceOpenSemaphore);
                 Assert.AreNotEqual(openSemaphore, anotherDeviceOpenSemaphore);
@@ -59,7 +55,7 @@ namespace DeviceBridge.Services.Tests
                 // Check that the mutex is unlocked on failure
                 ShimDeviceClientToFail();
                 SemaphoreSlim openFailSemaphore = null;
-                CaptureSemaphoreOnWait((semaphore) => openFailSemaphore = semaphore);
+                TestUtils.CaptureSemaphoreOnWait((semaphore) => openFailSemaphore = semaphore);
                 await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("device-to-fail-id"));
                 Assert.AreEqual(1, openFailSemaphore.CurrentCount);
 
@@ -67,7 +63,7 @@ namespace DeviceBridge.Services.Tests
                 var startTime = DateTime.Now;
                 SemaphoreSlim connectionTimeSemaphore = null;
                 ShimDeviceClient();
-                CaptureSemaphoreOnWait((semaphore) =>
+                TestUtils.CaptureSemaphoreOnWait((semaphore) =>
                 {
                     connectionTimeSemaphore = semaphore;
                     Assert.IsNotNull(connectionManager.GetDevicesThatConnectedSince(startTime).Find(id => id == "connection-time-test-id"));
@@ -367,7 +363,7 @@ namespace DeviceBridge.Services.Tests
                 DesiredPropertyUpdateCallback capturedPropertyUpdateCallback = null;
                 ShimDeviceClientAndCaptureAllHandlers(handler => capturedMethodCallback = handler, handler => capturedMessageCallback = handler, handler => capturedPropertyUpdateCallback = handler);
                 ShimDps("test-hub.azure.devices.net");
-                CaptureSemaphoreOnWait((semaphore) => capturedSemaphores.Add(semaphore));
+                TestUtils.CaptureSemaphoreOnWait((semaphore) => capturedSemaphores.Add(semaphore));
                 await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
                 bool desiredPropertyCallbackCalled = false, methodCallbackCalled = false, c2dCallbackCalled = false;
                 await connectionManager.SetMethodCallbackAsync("test-device-id", "method-callback-id", (_, __) =>
@@ -568,20 +564,6 @@ namespace DeviceBridge.Services.Tests
         {
             _storageProviderMock.Setup(p => p.ListHubCacheEntries(It.IsAny<Logger>())).Returns(Task.FromResult(hubCache ?? new List<HubCacheEntry>()));
             return new ConnectionManager(LogManager.GetCurrentClassLogger(), "test-id-scope", Convert.ToBase64String(Encoding.UTF8.GetBytes("test-sas-key")), 50, _storageProviderMock.Object);
-        }
-
-        /// <summary>
-        /// Shims SemaphoreSlime to capture the target semaphore of WaitAsync.
-        /// </summary>
-        /// <remarks>Must be used within a ShimsContext.</remarks>
-        /// <param name="onCapture">Delegate called when semaphore is captured.</param>
-        private static void CaptureSemaphoreOnWait(Action<SemaphoreSlim> onCapture)
-        {
-            System.Threading.Fakes.ShimSemaphoreSlim.AllInstances.WaitAsync = (@this) =>
-            {
-                onCapture(@this);
-                return ShimsContext.ExecuteWithoutShims(() => @this.WaitAsync());
-            };
         }
 
         /// <summary>
