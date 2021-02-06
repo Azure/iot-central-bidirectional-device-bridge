@@ -17,7 +17,7 @@ adapterImages=("myacr.io/adpterimage1" "myacr.io/adpterimage2" "myacr.io/adpteri
 adapterPathPrefixes=("adapter1" "adapter2" "adapter3")
 ```
 
-All requests whose path start with `/adapter1/` (e.g., https://mybridge.azurecontainers.io/adapter1/message) will be
+All requests whose path start with `/adapter1/` (e.g., `https://mybridge.azurecontainers.io/adapter1/message`) will be
 routes to the adapter running image `myacr.io/adpterimage1`. Requests whose path starts with `/adapter2/` will
 be routed to `myacr.io/adpterimage2` and so on.
 
