@@ -30,7 +30,6 @@ export default class DeviceBridgeAPI {
                 afterResponse: [this._logger(t, 'POST')],
             },
         });
-        console.log(body);
     }
 
     async sendReportedProperty(

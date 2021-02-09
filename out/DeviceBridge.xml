@@ -1,0 +1,620 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>DeviceBridge</name>
+    </assembly>
+    <members>
+        <member name="M:DeviceBridge.Controllers.ConnectionStatusController.GetCurrentConnectionStatus(System.String)">
+            <summary>
+            Gets that latest connection status for a device.
+            </summary>
+            <remarks>
+            For a detailed description of each status, see https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet.
+            </remarks>
+            <response code="200">The latest connection status and reason.</response>
+            <response code="404">If the connection status is not known (i.e., the device hasn't attempted to connect).</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.ConnectionStatusController.GetConnectionStatusSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Gets the current connection status change subscription for a device.
+            </summary>
+            <response code="200">The current connection status subscription.</response>
+            <response code="404">If a subscription doesn't exist.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.ConnectionStatusController.CreateOrUpdateConnectionStatusSubscription(System.String,DeviceBridge.Models.SubscriptionCreateOrUpdateBody,System.Threading.CancellationToken)">
+             <summary>
+             Creates or updates the current connection status change subscription for a device.
+             </summary>
+             <remarks>
+             When the internal connection status of a device changes, the service will send an event to the desired callback URL.
+            
+                 Example event:
+                 {
+                     "eventType": "string",
+                     "deviceId": "string",
+                     "deviceReceivedAt": "2020-12-04T01:06:14.251Z",
+                     "status": "string",
+                     "reason": "string"
+                 }
+            
+             For a detailed description of each status, see https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet.
+             </remarks>
+             <response code="200">The created or updated connection status subscription.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.ConnectionStatusController.DeleteConnectionStatusSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Deletes the current connection status change subscription for a device.
+            </summary>
+            <response code="204">Subscription deleted successfully.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.DeviceBoundController.GetC2DMessageSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Gets the current C2D message subscription for a device.
+            </summary>
+            <response code="200">The current C2D message subscription.</response>
+            <response code="404">If a subscription doesn't exist.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.DeviceBoundController.CreateOrUpdateC2DMessageSubscription(System.String,DeviceBridge.Models.SubscriptionCreateOrUpdateBody,System.Threading.CancellationToken)">
+             <summary>
+             Creates or updates the current C2D message subscription for a device.
+             </summary>
+             <remarks>
+             When the device receives a new C2D message from IoTHub, the service will send an event to the desired callback URL.
+            
+                 Example event:
+                 {
+                     "eventType": "string",
+                     "deviceId": "string",
+                     "deviceReceivedAt": "2020-12-04T01:06:14.251Z",
+                     "messageBody": {},
+                     "properties": {
+                         "prop1": "string",
+                         "prop2": "string",
+                     },
+                     "messageId": "string",
+                     "expirtyTimeUtC": "2020-12-04T01:06:14.251Z"
+                 }
+            
+             The response status code of the callback URL will determine how the service will acknowledge a message:
+             - Response code between 200 and 299: the service will complete the message.
+             - Response code between 400 and 499: the service will reject the message.
+             - Any other response status: the service will abandon the message, causing IotHub to redeliver it.
+            
+             For a detailed overview of C2D messages, see https://docs.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messages-c2d.
+             </remarks>
+             <response code="200">The created or updated C2D message subscription.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.DeviceBoundController.DeleteC2DMessageSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Deletes the current C2D message subscription for a device.
+            </summary>
+            <response code="204">Subscription deleted successfully.</response>
+        </member>
+        <member name="T:DeviceBridge.Controllers.HttpErrorBody">
+            <summary>
+            The response body returned if an error occours.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Controllers.MessagesController.SendMessage(System.String,DeviceBridge.Models.MessageBody,System.Threading.CancellationToken)">
+             <summary>
+             Sends a device message to IoTHub.
+             </summary>
+             <remarks>
+             Example request:
+            
+                 POST /devices/{deviceId}/messages/events
+                 {
+                     "data": {
+                         "temperature": 4.8,
+                         "humidity": 31
+                     }
+                 }
+             .
+             </remarks>
+             <response code="200">Message sent successfully.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.MethodsController.GetMethodsSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Gets the current direct methods subscription for a device.
+            </summary>
+            <response code="200">The current direct methods subscription.</response>
+            <response code="404">If a subscription doesn't exist.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.MethodsController.CreateOrUpdateMethodsSubscription(System.String,DeviceBridge.Models.SubscriptionCreateOrUpdateBody,System.Threading.CancellationToken)">
+             <summary>
+             Creates or updates the current direct methods subscription for a device.
+             </summary>
+             <remarks>
+             When the device receives a direct method invocation from IoTHub, the service will send an event to the desired callback URL.
+            
+                 Example event:
+                 {
+                     "eventType": "string",
+                     "deviceId": "string",
+                     "deviceReceivedAt": "2020-12-04T01:06:14.251Z",
+                     "methodName": "string",
+                     "requestData": {}
+                 }
+            
+             The callback may return an optional response body, which will be sent to IoTHub as the method response:
+            
+                 Example callback response:
+                 {
+                     "status": 200,
+                     "payload": {}
+                 }
+             .
+             </remarks>
+             <response code="200">The created or updated C2D message subscription.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.MethodsController.DeleteMethodsSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Deletes the current direct methods subscription for a device.
+            </summary>
+            <response code="204">Subscription deleted successfully.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.RegistrationController.Register(System.String,DeviceBridge.Models.RegistrationBody,System.Threading.CancellationToken)">
+             <summary>
+             Performs DPS registration for a device, optionally assigning it to a model.
+             </summary>
+             <remarks>
+             The registration result is internally cached to be used in future connections.
+             This route is only intended for ahead-of-time registration of devices with the bridge and assignment to a specific model. To access all DPS registration features,
+             including sending custom registration payload and getting the assigned hub, please use the DPS REST API (https://docs.microsoft.com/en-us/rest/api/iot-dps/).
+            
+             <b>NOTE:</b> DPS registration is a long-running operation, so calls to this route may take a long time to return. If this is a concern, use the DPS REST API directly, which provides
+             support for long-running operation status lookup.
+             </remarks>
+             <response code="200">Registration successful.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.ResyncController.Resync(System.String)">
+            <summary>
+            Forces a full synchronization of all subscriptions for this device and attempts to restart any subscriptions in a stopped state.
+            </summary>
+            <remarks>
+            Internally it forces the reconnection of the device if it's in a permanent failure state, due for instance to:
+            - Bad credentials.
+            - Device was previously disabled in the cloud side.
+            - Automatic retries expired (e.g., due to a long period without network connectivity).
+            </remarks>
+            <response code="202">Resynchronization started.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.TwinController.GetTwin(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Gets the device twin.
+            </summary>
+            <response code="200">The device twin.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.TwinController.UpdateReportedProperties(System.String,DeviceBridge.Models.ReportedPropertiesPatch,System.Threading.CancellationToken)">
+             <summary>
+             Updates reported properties in the device twin.
+             </summary>
+             <remarks>
+             Example request:
+            
+                 PATCH /devices/{deviceId}/properties/reported
+                 {
+                     "patch": {
+                         "fanSpeed": 35,
+                         "serial": "ABC"
+                     }
+                 }
+             .
+             </remarks>
+             <response code="204">Twin updated successfully.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.TwinController.GetDesiredPropertiesSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Gets the current desired property change subscription for a device.
+            </summary>
+            <response code="200">The current desired property change subscription.</response>
+            <response code="404">If a subscription doesn't exist.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.TwinController.CreateOrUpdateDesiredPropertiesSubscription(System.String,DeviceBridge.Models.SubscriptionCreateOrUpdateBody,System.Threading.CancellationToken)">
+             <summary>
+             Creates or updates the current desired property change subscription for a device.
+             </summary>
+             <remarks>
+             When the device receives a new desired property change from IoTHub, the service will send an event to the desired callback URL.
+            
+                 Example event:
+                 {
+                     "eventType": "string",
+                     "deviceId": "string",
+                     "deviceReceivedAt": "2020-12-04T01:06:14.251Z",
+                     "desiredProperties": {
+                         "prop1": "string",
+                         "prop2": 12,
+                         "prop3": {},
+                     }
+                 }
+             .
+             </remarks>
+             <response code="200">The created or updated C2D message subscription.</response>
+        </member>
+        <member name="M:DeviceBridge.Controllers.TwinController.DeleteDesiredPropertiesSubscription(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Deletes the current desired property change subscription for a device.
+            </summary>
+            <response code="204">Subscription deleted successfully.</response>
+        </member>
+        <member name="F:DeviceBridge.Management.DbSchemaSetup.CreateUpsertDeviceSubscriptionProcedureQuery">
+            <summary>
+            Tries to create a device subscription. If one already exists, updates it.
+            Concurrent calls to this procedure will not generate a failure.
+            Outputs the creation time.
+            </summary>
+        </member>
+        <member name="F:DeviceBridge.Management.DbSchemaSetup.CreateUpsertHubCacheEntryProcedureQuery">
+            <summary>
+            Tries to add a hub cache entry for a device. If one already exists, updates it.
+            </summary>
+        </member>
+        <member name="F:DeviceBridge.Management.DbSchemaSetup.CreateGetHubCacheEntriesPagedProcedureQuery">
+            <summary>
+            Fetches a page of entries from the HubCache table.
+            The page index parameter is zero-based.
+            </summary>
+        </member>
+        <member name="F:DeviceBridge.Management.DbSchemaSetup.CreateGetDeviceSubscriptionsPagedProcedureQuery">
+            <summary>
+            Fetches a page of device subscriptions.
+            The page index parameter is zero-based.
+            Results are ordered by deviceId and subscriptionType.
+            </summary>
+        </member>
+        <member name="T:DeviceBridge.Management.EncryptionSetup">
+            <summary>
+            Encryption setup is responsible for creating encryption keys, and re-encrypting sensitive data in the database.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Management.EncryptionSetup.Reencrypt">
+            <summary>
+            Creates and saves a new encryption key in the database.
+            Reencrypts all callback URL's in the database.
+            </summary>
+            <returns>Empty task.</returns>
+        </member>
+        <member name="M:DeviceBridge.Models.DeviceSubscriptionType.FromString(System.String)">
+            <summary>
+            Returns the corresponding singleton for a give subscription type.
+            </summary>
+            <exception cref="T:DeviceBridge.Common.Exceptions.UnknownDeviceSubscriptionTypeException">If the given value is not a valid subscription type.</exception>
+            <param name="value">The string representation subscription type.</param>
+            <returns>The corresponding singleton for the subscription type.</returns>
+        </member>
+        <member name="M:DeviceBridge.Models.DeviceSubscriptionType.IsDataSubscription">
+            <summary>
+            A data subscription deals with events that depend on a device connection (properties, methods, C2D messages).
+            A connection status subscription, in the other hand, is just a subscription to engine events that is always active and doesn't depend on a connection.
+            </summary>
+            <returns>Whether this is a data subscription or not.</returns>
+        </member>
+        <member name="T:DeviceBridge.Models.ReceiveMessageCallbackStatus">
+            <summary>Enum ReceiveMessageCallbackStatus.</summary>
+        </member>
+        <member name="F:DeviceBridge.Models.ReceiveMessageCallbackStatus.Accept">
+            <summary>Client should accept message.</summary>
+        </member>
+        <member name="F:DeviceBridge.Models.ReceiveMessageCallbackStatus.Reject">
+            <summary>Client should reject message.</summary>
+        </member>
+        <member name="F:DeviceBridge.Models.ReceiveMessageCallbackStatus.Abandon">
+            <summary>Client should abandon message.</summary>
+        </member>
+        <member name="F:DeviceBridge.Providers.StorageProvider.TableNotFoundErrorNumber">
+            <summary>
+            Taken from https://docs.microsoft.com/en-us/sql/relational-databases/errors-events/database-engine-events-and-errors.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.ListAllSubscriptionsOrderedByDeviceId(NLog.Logger)">
+            <summary>
+            Lists all active subscriptions of all types ordered by device Id.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <returns>List of all subscriptions of all types ordered by device Id.</returns>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.ListDeviceSubscriptions(NLog.Logger,System.String)">
+            <summary>
+            Lists all active subscriptions of all types for a device.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <param name="deviceId">Id of the device to get the subscriptions for.</param>
+            <returns>List of subscriptions for the given device.</returns>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.GetDeviceSubscription(NLog.Logger,System.String,DeviceBridge.Models.DeviceSubscriptionType,System.Threading.CancellationToken)">
+            <summary>
+            Gets an active subscription of the specified type for a device, if one exists.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <param name="deviceId">Id of the device to get the subscription for.</param>
+            <param name="subscriptionType">Type of the subscription to get.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>The subscription, if exists. Null otherwise.</returns>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.CreateOrUpdateDeviceSubscription(NLog.Logger,System.String,DeviceBridge.Models.DeviceSubscriptionType,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Creates a subscription of the given type for the given device. If one already exists, it's updated with a new creation time and callback URL.
+            Returns the created or updated subscription.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <param name="deviceId">Id of the device to create the subscription for.</param>
+            <param name="subscriptionType">Type of the subscription to be created.</param>
+            <param name="callbackUrl">Callback URL of the subscription.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>The created subscription.</returns>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.DeleteDeviceSubscription(NLog.Logger,System.String,DeviceBridge.Models.DeviceSubscriptionType,System.Threading.CancellationToken)">
+            <summary>
+            Deletes the subscription of the given type for a device, if one exists.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <param name="deviceId">Id of the device to delete the subscription for.</param>
+            <param name="subscriptionType">Type of the subscription to be deleted.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.GcHubCache(NLog.Logger)">
+            <summary>
+            Deletes from the hub cache any device that doesn't have a subscription and hasn't attempted to open a connection in the past week.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.RenewHubCacheEntries(NLog.Logger,System.Collections.Generic.List{System.String})">
+            <summary>
+            Renews the Hub cache timestamp for a list of devices.
+            </summary>
+            <param name="logger">The logger instance to use.</param>
+            <param name="deviceIds">List of device Ids to renew.</param>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.AddOrUpdateHubCacheEntry(NLog.Logger,System.String,System.String)">
+            <summary>
+            Adds or updates a Hub cache entry for a device.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <param name="deviceId">Id of the device for the new cache entry.</param>
+            <param name="hub">Hub to be added to the cache entry for the device.</param>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.ListHubCacheEntries(NLog.Logger)">
+            <summary>
+            Lists all entries in the Hub cache.
+            </summary>
+            <param name="logger">Logger to be used.</param>
+            <returns>List of all entries in the DB hub cache.</returns>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.Exec(NLog.Logger,System.String)">
+            <summary>
+            Executes an arbitrary SQL command against the DB.
+            </summary>
+            <param name="logger">Logger instance to use.</param>
+            <param name="sql">SQL command to run.</param>
+        </member>
+        <member name="M:DeviceBridge.Providers.StorageProvider.TranslateSqlException(System.Exception)">
+            <summary>
+            Translates SQL exceptions into service exceptions.
+            </summary>
+            <param name="e">Original SQL exception.</param>
+            <returns>The translated service exception.</returns>
+        </member>
+        <member name="T:DeviceBridge.Services.ConnectionManager">
+             <summary>
+             Manages SDK device connections. A connection can have two modes: permanent or temporary.
+            
+             A permanent connection is one that should be kept open indefinitely, until the user explicitly decides to close it.
+             This connection type is used for any type of persistent subscription that needs an always-on connection, such as desired property changes.
+            
+             A temporary connection is used for point-in-time operations, such as sending telemetry and getting the current device twin.
+             This type of connection lives for a few minutes (currently 9-10 mins) and is automatically closed. It's used to increase the chances
+             of a connection being already open when a point-in-time operation happens but also to make sure that connections don't stay
+             open for too long for silent devices.
+            
+             Temporary connections are rewed whenever a new operation happens. Deleting a permanent connection falls back to a temporary connection if one exists.
+             </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.StartExpiredConnectionCleanupAsync">
+            <summary>
+            Attempts to cleanup expired temporary connections every 10 seconds.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.GetDeviceStatus(System.String)">
+            <summary>
+            See <see href="https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet">ConnectionStatus documentation</see>
+            for a detailed description of each status and reason.
+            </summary>
+            <param name="deviceId">Id of the device to get the status for.</param>
+            <returns>The last known connection status of the device or null if the device has never connected.</returns>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.GetDevicesThatConnectedSince(System.DateTime)">
+            <summary>
+            Gets the list of all devices that attempted to connect since a given timestamp.
+            </summary>
+            <param name="threshold">Timestamp to filter by.</param>
+            <returns>The list of device Ids that attempted to connect since the given timestamp.</returns>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.AssertDeviceConnectionOpenAsync(System.String,System.Boolean,System.Boolean,System.Nullable{System.Threading.CancellationToken})">
+            <summary>
+            Asserts that a permanent or temporary connection for this device is open.
+            A temporary connection is guaranteed to live for only a few minutes (currently 9-11 minutes).
+            </summary>
+            <param name="deviceId">Id of the device to open a connection for.</param>
+            <param name="temporary">Whether the requested connection is temporary or permanent.</param>
+            <param name="recreateFailedClient">Forces the recreation of the current client if it's in a permanent failure state (i.e., the SDK will not retry).</param>
+            <param name="cancellationToken">Optional cancellation token.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.AssertDeviceConnectionClosedAsync(System.String,System.Boolean)">
+            <summary>
+            Asserts that the permanent or temporary connection for this device is closed. The temporary connection is only closed
+            if it has expired. The underlying connection is not actually closed if we're trying to delete a permanent connection and
+            a temporary one exists or vice-versa.
+            </summary>
+            <param name="deviceId">Id of the decide for which the connection should be closed.</param>
+            <param name="temporary">Whether the temporary or permanent connection should be closed.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.StandaloneDpsRegistrationAsync(NLog.Logger,System.String,System.String,System.Nullable{System.Threading.CancellationToken})">
+            <summary>
+            Performs a standalone DPS registration (not part of a device connection). The registration data is cached for future connections.
+            </summary>
+            <param name="logger">Logger instance to use.</param>
+            <param name="deviceId">Id of the device to register.</param>
+            <param name="modelId">Optional model Id to assign the device to.</param>
+            <param name="cancellationToken">Optional cancellation token.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.SetDesiredPropertyUpdateCallbackAsync(System.String,System.String,Microsoft.Azure.Devices.Client.DesiredPropertyUpdateCallback)">
+            <summary>
+            Sets the desired property change callback. The callback is not tied to a connection lifetime and will be active whenever the device
+            status is marked as online.
+            </summary>
+            <param name="deviceId">Id to the device to set the callback for.</param>
+            <param name="id">string identifying the callback, for tracking purposes.</param>
+            <param name="callback">The callback to be called when a desired property update is received.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.SetMethodCallbackAsync(System.String,System.String,Microsoft.Azure.Devices.Client.MethodCallback)">
+            <summary>
+            Sets the direct method callback for a device. The callback is not tied to a connection lifetime and will be active whenever the device
+            status is marked as online.
+            </summary>
+            <param name="deviceId">Id to the device to set the callback for.</param>
+            <param name="id">string identifying the callback, for tracking purposes.</param>
+            <param name="callback">The callback to be called when a method invocation is received.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.SetMessageCallbackAsync(System.String,System.String,System.Func{Microsoft.Azure.Devices.Client.Message,System.Threading.Tasks.Task{DeviceBridge.Models.ReceiveMessageCallbackStatus}})">
+            <summary>
+            Sets the direct message callback for a device. The callback is not tied to a connection lifetime and will be active whenever the device
+            status is marked as online.
+            </summary>
+            <param name="deviceId">Id to the device to set the callback for.</param>
+            <param name="id">string identifying the callback, for tracking purposes.</param>
+            <param name="callback">The callback to be called when a C2D message is received.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.SetConnectionStatusCallback(System.String,System.Func{Microsoft.Azure.Devices.Client.ConnectionStatus,Microsoft.Azure.Devices.Client.ConnectionStatusChangeReason,System.Threading.Tasks.Task})">
+            <summary>
+            Sets the connection status change handler for a device.
+            </summary>
+            <param name="deviceId">Id of the device to set the callback for.</param>
+            <param name="callback">Callback to be called when the status of the device connection changes.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.Dispose">
+            <summary>
+            Attempts to gracefully shutdown all SDK connections.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.DpsRegisterInternalAsync(NLog.Logger,System.String,System.String,System.String,System.Nullable{System.Threading.CancellationToken})">
+            <summary>
+            Internal wrapper for DPS registration.
+            </summary>
+            <exception cref="T:DeviceBridge.Common.Exceptions.DpsRegistrationFailedWithUnknownStatusException">If the final registration status is not "assigned".</exception>
+            <param name="logger">Logger instance to use.</param>
+            <param name="deviceId">Id of the device to register.</param>
+            <param name="deviceKey">Key for the device.</param>
+            <param name="modelId">Optional model Id to be passed to DPS.</param>
+            <param name="cancellationToken">Optional cancellation token.</param>
+            <returns>The assigned hub for this device.</returns>
+        </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.BuildConnectionStatusChangeHandler(System.String)">
+            <summary>
+            Builds a connection change handler for a specific deviceId, which optionally calls a custom callback.
+            </summary>
+            <param name="deviceId">Id of the device for which to build the callback.</param>
+            <returns>The connection status change handler.</returns>
+        </member>
+        <member name="T:DeviceBridge.Services.CustomDeviceClientRetryPolicy">
+            <summary>
+            Extends the default SDK retry policy (ExponentialBackoff) to fail right away if the hub doesn't exist.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.CustomDeviceClientRetryPolicy.ShouldRetry(System.Int32,System.Exception,System.TimeSpan@)">
+            <summary>
+            Returns true if, based on the parameters, the operation should be retried.
+            </summary>
+            <param name="currentRetryCount">How many times the operation has been retried.</param>
+            <param name="lastException">Operation exception.</param>
+            <param name="retryInterval">Next retry should be performed after this time interval.</param>
+            <returns>True if the operation should be retried, false otherwise.</returns>
+        </member>
+        <member name="T:DeviceBridge.Services.ExpiredConnectionCleanupHostedService">
+            <summary>
+            When the application starts, start the expired connection cleanup task.
+            </summary>
+        </member>
+        <member name="T:DeviceBridge.Services.HubCacheGcHostedService">
+            <summary>
+            Every 6 hours:
+            - renews the Hub cache entries for the devices that attempted to open a connection.
+            - runs the GC routine in the Hub cache, removing entries for any device that doesn't have a subscription and
+              hasn't connected in the last week.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.SubscriptionService.StartDataSubscriptionsInitializationAsync">
+            <summary>
+            Starts the Initialization of data subscriptions for all devices based on the list fetched from the DB at service construction time.
+            For use during service startup.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.SubscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Asserts that the internal engine state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
+            Only applies to data subscriptions, i.e., not connection status subscriptions.
+            </summary>
+            <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
+            <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
+            <param name="forceConnectionRetry">Whether to force a connection retry if the current connection is in a failed state.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.SubscriptionService.ComputeDataSubscriptionStatus(System.String,DeviceBridge.Models.DeviceSubscriptionType,System.String)">
+            <summary>
+            Determines the status of a subscription based on the current state of the device client.
+            </summary>
+            <param name="deviceId">Id of the device for which to check the subscription status.</param>
+            <param name="subscriptionType">Type of the subscription that we want the status for.</param>
+            <param name="callbackUrl">URL for which we want to check the subscription status.</param>
+            <returns>Status of the subscription.</returns>
+        </member>
+        <member name="T:DeviceBridge.Services.SubscriptionStartupHostedService">
+            <summary>
+            When the application starts, initialize all device subscriptions that we have in the DB.
+            </summary>
+        </member>
+        <member name="T:DeviceBridge.Startup">
+            <summary>Class Startup.</summary>
+        </member>
+        <member name="M:DeviceBridge.Startup.#ctor(Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>Initializes a new instance of the <see cref="T:DeviceBridge.Startup"/> class.</summary>
+            <param name="configuration">The configuration.</param>
+        </member>
+        <member name="M:DeviceBridge.Startup.ConfigureServices(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>This method gets called by the runtime. Use this method to add services to the container.</summary>
+            <param name="services">The services.</param>
+        </member>
+        <member name="M:DeviceBridge.Startup.Configure(Microsoft.AspNetCore.Builder.IApplicationBuilder,Microsoft.AspNetCore.Hosting.IWebHostEnvironment,Microsoft.Extensions.Hosting.IHostApplicationLifetime,DeviceBridge.Services.ConnectionManager)">
+            <summary>This method gets called by the runtime. Use this method to configure the HTTP request pipeline..</summary>
+            <param name="app">The application.</param>
+            <param name="env">The env.</param>
+            <param name="lifetime">The lifetime.</param>
+            <param name="connectionManager">The connection manager.</param>
+        </member>
+        <member name="M:DeviceBridge.Startup.GetRetryPolicy(NLog.Logger)">
+            <summary>
+              <para>Gets the retry policy, used in HttpClient.</para>
+            </summary>
+            <returns>IAsyncPolicy&lt;HttpResponseMessage&gt;.</returns>
+        </member>
+        <member name="M:Utils.GuidFromString(System.String)">
+            <summary>
+            Generates a GUID hashed from an input string.
+            </summary>
+            <param name="input">Input to generate the GUID from.</param>
+            <returns>GUID hashed from input.</returns>
+        </member>
+        <member name="M:Utils.GetSqlConnectionString(NLog.Logger,DeviceBridge.Providers.SecretsProvider)">
+            <summary>
+            Fetches the sql connection string.
+            </summary>
+            <param name="logger">Logger.</param>
+            <param name="secretsProvider">Secrets provider for retrieving credentials.</param>
+            <returns>The sql connection string.</returns>
+        </member>
+        <member name="T:NotFoundResultFilterAttribute">
+            <summary>
+            Converts a null return value into a 404.
+            </summary>
+        </member>
+    </members>
+</doc>
