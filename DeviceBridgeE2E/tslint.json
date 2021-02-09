@@ -1,0 +1,6 @@
+{
+    "extends": "@azure-iot/tslint-config/strict",
+    "rules": {
+        "no-namespace": true
+    }
+}

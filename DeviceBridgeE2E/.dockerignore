@@ -1,0 +1,26 @@
+# Development configs
+**/user-config.*
+/cluster-config.json
+.env
+
+# Node
+**/node_modules/
+**/npm-debug.log*
+
+# Code coverage (nyc)
+/coverage/
+/.nyc_output/
+
+# Build output
+/dist/
+/client/
+/src/definitions/types.ts
+/src/spec.json
+/spec.*
+/*.tgz
+
+# Docker output
+/*.tar
+
+# Local test folders
+/src/*/local/

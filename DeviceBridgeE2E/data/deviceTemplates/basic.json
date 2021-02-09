@@ -1,0 +1,105 @@
+{
+    "capabilityModel": {
+        "@context": [
+            "http://azureiot.com/v1/contexts/IoTModel.json",
+            "http://azureiot.com/v1/contexts/solutionmodel.json",
+            "http://azureiot.com/v1/contexts/modeldefinition.json"
+        ],
+        "@id": "dtmi:jeff:Basic8;1",
+        "@type": "CapabilityModel",
+        "contents": [
+            {
+                "@id": "dtmi:jeff:Basic8:temperature;1",
+                "@type": ["Telemetry", "SemanticType/Temperature"],
+                "displayName": "temperature",
+                "name": "temperature",
+                "schema": "double"
+            },
+            {
+                "@id": "dtmi:jeff:Basic8:humidity;1",
+                "@type": ["Telemetry", "SemanticType/Humidity"],
+                "displayName": "humidity",
+                "name": "humidity",
+                "schema": "double"
+            },
+            {
+                "@id": "dtmi:jeff:Basic8:rwProp;1",
+                "@type": "Property",
+                "displayName": "rw-prop",
+                "name": "rwProp",
+                "schema": "string",
+                "writable": true
+            },
+            {
+                "@id": "dtmi:jeff:Basic8:Basic2qi;1",
+                "@type": "Component",
+                "displayName": "Component",
+                "name": "Basic2qi",
+                "schema": {
+                    "@id": "dtmi:jeff:Basic2qi;1",
+                    "@type": "Interface",
+                    "contents": [
+                        {
+                            "@id": "dtmi:jeff:Basic2qi:nestedTemperature;1",
+                            "@type": ["Telemetry", "SemanticType/Temperature"],
+                            "displayName": "nested-temperature",
+                            "name": "nestedTemperature",
+                            "schema": "double"
+                        },
+                        {
+                            "@id": "dtmi:jeff:Basic2qi:nestedHumidity;1",
+                            "@type": ["Telemetry", "SemanticType/Humidity"],
+                            "displayName": "nested-humidity",
+                            "name": "nestedHumidity",
+                            "schema": "double"
+                        },
+                        {
+                            "@id": "dtmi:jeff:Basic2qi:nestedROProp;1",
+                            "@type": "Property",
+                            "displayName": "nested-ro-prop",
+                            "name": "nestedROProp",
+                            "schema": "string"
+                        },
+                        {
+                            "@id": "dtmi:jeff:Basic2qi:nestedRWProp;1",
+                            "@type": "Property",
+                            "displayName": "nested-rw-prop",
+                            "name": "nestedRWProp",
+                            "schema": "string",
+                            "writable": true
+                        }
+                    ],
+                    "displayName": "Component"
+                }
+            },
+            {
+                "@id": "dtmi:jeff:Basic8:roProp;1",
+                "@type": "Property",
+                "displayName": "ro-prop",
+                "name": "roProp",
+                "schema": "string"
+            }
+        ],
+        "displayName": "Basic",
+        "implements": []
+    },
+    "displayName": "Basic",
+    "id": "dtmi:modelDefinition:l6qulppl64:vlimdblzpv",
+    "solutionModel": {
+        "@id": "dtmi:solutionModel:modelDefinition:l6qulppl64:og0sesfwd6",
+        "@type": "SolutionModel",
+        "cloudProperties": [
+            {
+                "@id": "dtmi:solutionModel:modelDefinition:l6qulppl64:og0sesfwd6:cloud",
+                "@type": "CloudProperty",
+                "displayName": "cloud",
+                "name": "cloud",
+                "schema": "string",
+                "valueDetail": {
+                    "@type": "ValueDetail/StringValueDetail"
+                }
+            }
+        ]
+    },
+    "types": ["DeviceModel"]
+}
