@@ -17,3 +17,5 @@
 
 # Docker output
 /*.tar
+
+out/*
