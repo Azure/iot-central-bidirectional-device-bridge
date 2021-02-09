@@ -5,20 +5,69 @@
 # Requests are routed to each adapter based on a path prefix.      #
 ####################################################################
 
+resourceGroup=
+acrServer=
+acrUsername=
+acrPassword=
+logAnalyticsId=
+logAnalyticsKey=
+adapterImages=
+adapterPathPrefixes=
 
-# Replace the parameters below with the appropriate values
-####################################################################
+# Read parameters
+while :; do
+    case $1 in
+      --resource-group)
+        resourceGroup=$2
+        shift
+        ;;
+      --acr-server)
+        acrServer=$2
+        shift
+        ;;
+      --acr-username)
+        acrUsername=$2
+        shift
+        ;;
+      --acr-password)
+        acrPassword=$2
+        shift
+        ;;
+      --log-analytics-workspace-id)
+        logAnalyticsId=$2
+        shift
+        ;;
+      --log-analytics-workspace-key)
+        logAnalyticsKey=$2
+        shift
+        ;;
+      --adapter-images)
+        adapterImages=(${2//,/ })
+        shift
+        ;;
+      --adapter-path-prefixes)
+        adapterPathPrefixes=(${2//,/ })
+        shift
+        ;;
+      -?*)
+        echo "ERROR: Unknown option $1"
+        exit
+        ;;
+      *)
+        break
+    esac
+    shift
+done
 
-resourceGroup="<resource-group>"
-acrServer="<acr-server>"
-acrUsername="<acr-username>"
-acrPassword="<acr-password>"
-logAnalyticsId="<log-analytics-workspace-id>"
-logAnalyticsKey="<log-analytics-workspace-key>"
-adapterImages=("<adapter-image-1>" "<adapter-image-2>" "<adapter-image-3>")
-adapterPathPrefixes=("<path-prefix-1>" "<path-prefix-1>" "<path-prefix-1>")
+if ([[ -z "$resourceGroup" ]] || [[ -z "$acrServer" ]] || [[ -z "$acrUsername" ]] || [[ -z "$acrPassword" ]] || [[ -z "$logAnalyticsId" ]] || [[ -z "$logAnalyticsKey" ]]); then
+  echo "ERROR: All parameters must be difined"
+  exit
+fi
 
-####################################################################
+if ([[ ${#adapterImages[@]} == 0 ]] || [[ ${#adapterPathPrefixes[@]} == 0 ]] || [[ ${#adapterImages[@]} != ${#adapterPathPrefixes[@]} ]]); then
+  echo "ERROR: Number of adapter images must match the number of path prefixes"
+  exit
+fi
 
 # Check for existing bridge resources in the resource group (we locate the resources by name)
 echo "Fetching existing Bridge resources..."
