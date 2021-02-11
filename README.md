@@ -368,6 +368,9 @@ folder we provide an example of a custom adapter written in TypeScript that forw
 This adapter uses a client automatically generated with [AutoRest](https://github.com/Azure/autorest) using the Bridge swagger available
 under `Docs/swagger.json`. The example also contains the necessary ARM template to deploy it as a sidecar with the Bridge.
 
+We also provide an example of how to deploy multiple adapters (`Samples/MultipleAdapterDeployment`). In this setup,
+each adapter is deployed as a separate container and requests are routed based on the path.
+
 The diagrams below illustrate the original Bridge architecture and how a custom adapter fits into it:
 
 ![Original architecture](Docs/Assets/original-architecture.png "original architecture")
