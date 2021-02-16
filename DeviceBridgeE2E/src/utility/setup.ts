@@ -16,11 +16,29 @@ export interface TestContext {
 
 export async function setup(t: ExecutionContext): Promise<TestContext> {
     var args = process.argv.slice(2);
-    var APP_URL = args[0];
-    var DEVICE_BRIDGE_URL = args[1];
-    var DEVICE_BRIDGE_KEY = args[2];
-    var AZURE_FUNCTION_URL = args[3];
-    var BEARER_TOKEN = args[4];
+    var APP_URL = "";
+    var DEVICE_BRIDGE_URL = "";
+    var DEVICE_BRIDGE_KEY = "";
+    var AZURE_FUNCTION_URL = "";
+    var BEARER_TOKEN = "";
+
+    args.forEach(arg => {
+        if(arg.startsWith("--app-url=")){
+            APP_URL = arg.split('=')[1];
+        }
+        if(arg.startsWith("--device-bridge-url=")){
+            DEVICE_BRIDGE_URL = arg.split('=')[1];
+        }
+        if(arg.startsWith("--device-bridge-key=")){
+            DEVICE_BRIDGE_KEY = arg.split('=')[1];
+        }
+        if(arg.startsWith("--azure-function-url=")){
+            AZURE_FUNCTION_URL = arg.split('=')[1];
+        }
+        if(arg.startsWith("--bearer-token=")){
+            BEARER_TOKEN = arg.split('=')[1];
+        }
+    })
 
     var publicAPI = await PublicAPI.create(APP_URL,BEARER_TOKEN);
     var deviceBridgAPI = await DeviceBridgeAPI.create(DEVICE_BRIDGE_URL, DEVICE_BRIDGE_KEY, AZURE_FUNCTION_URL);
