@@ -1,7 +1,6 @@
 import { ExecutionContext } from 'ava';
 import PublicAPI from './publicAPI';
 import DeviceBridgeAPI from './deviceBridgeAPI';
-import config from './config';
 
 export interface ServicePrincipal {
     clientId: string;
@@ -16,9 +15,9 @@ export interface TestContext {
 }
 
 export async function setup(t: ExecutionContext): Promise<TestContext> {
-    var publicAPI = await PublicAPI.create(config.getRequired("APP_URL"), config.getRequired("BEARER_TOKEN"));
-    var deviceBridgAPI = await DeviceBridgeAPI.create(config.getRequired("DEVICE_BRIDGE_URL"), config.getRequired("DEVICE_BRIDGE_KEY"), config.getRequired("AZURE_FUNCTION_URL"));
-    var callbackUrl = config.getRequired("AZURE_FUNCTION_URL") as string;
+    var publicAPI = await PublicAPI.create("test", "test", /*config.getRequired("APP_URL"), config.getRequired("BEARER_TOKEN")*/);
+    var deviceBridgAPI = await DeviceBridgeAPI.create("test", "test", "test",/*config.getRequired("DEVICE_BRIDGE_URL"), config.getRequired("DEVICE_BRIDGE_KEY"), config.getRequired("AZURE_FUNCTION_URL")*/);
+    var callbackUrl = "test"; //config.getRequired("AZURE_FUNCTION_URL") as string;
 
     return {
         publicAPI,
