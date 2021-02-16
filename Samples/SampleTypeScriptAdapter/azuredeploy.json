@@ -99,9 +99,31 @@
         "bridgeContainerName": "[concat('iotc-bridge-container-', uniqueString(resourceGroup().id))]",
         "keyvaultName": "[concat('iotc-kv-', uniqueString(resourceGroup().id))]",
         "databaseName": "[concat('iotc-db-', uniqueString(resourceGroup().id))]",
-        "sqlServerName": "[concat('iotc-sql-', uniqueString(resourceGroup().id))]"
+        "sqlServerName": "[concat('iotc-sql-', uniqueString(resourceGroup().id))]",
+        "storageAccountName": "[concat('iotcsa', uniqueString(resourceGroup().id))]"
     },
     "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "kind": "StorageV2",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "resources": [
+                {
+                    "type": "fileServices/shares",
+                    "apiVersion": "2019-06-01",
+                    "name": "/default/bridge",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+                    ]
+                }
+            ]
+        },
         {
             "type": "Microsoft.Sql/servers",
             "apiVersion": "2019-06-01-preview",
@@ -218,6 +240,7 @@
             "name": "[variables('containerGroupsName')]",
             "location": "[resourceGroup().location]",
             "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
                 "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('databaseName'))]"
             ],
             "identity": {
@@ -340,11 +363,19 @@
                 "volumes": [
                     {
                       "name": "data",
-                      "emptyDir": {}
+                      "azureFile": {
+                        "shareName": "bridge",
+                        "storageAccountName": "[variables('storageAccountName')]",
+                        "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value]"
+                      }
                     },
                     {
                       "name": "config",
-                      "emptyDir": {}
+                      "azureFile": {
+                        "shareName": "bridge",
+                        "storageAccountName": "[variables('storageAccountName')]",
+                        "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value]"
+                      }
                     }
                   ],
                 "initContainers": [

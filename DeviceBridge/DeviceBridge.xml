@@ -4,6 +4,21 @@
         <name>DeviceBridge</name>
     </assembly>
     <members>
+        <member name="M:DeviceBridge.Common.Utils.GuidFromString(System.String)">
+            <summary>
+            Generates a GUID hashed from an input string.
+            </summary>
+            <param name="input">Input to generate the GUID from.</param>
+            <returns>GUID hashed from input.</returns>
+        </member>
+        <member name="M:DeviceBridge.Common.Utils.GetSqlConnectionString(NLog.Logger,DeviceBridge.Providers.SecretsProvider)">
+            <summary>
+            Fetches the sql connection string.
+            </summary>
+            <param name="logger">Logger.</param>
+            <param name="secretsProvider">Secrets provider for retrieving credentials.</param>
+            <returns>The sql connection string.</returns>
+        </member>
         <member name="M:DeviceBridge.Controllers.ConnectionStatusController.GetCurrentConnectionStatus(System.String)">
             <summary>
             Gets that latest connection status for a device.
@@ -595,21 +610,6 @@
               <para>Gets the retry policy, used in HttpClient.</para>
             </summary>
             <returns>IAsyncPolicy&lt;HttpResponseMessage&gt;.</returns>
-        </member>
-        <member name="M:Utils.GuidFromString(System.String)">
-            <summary>
-            Generates a GUID hashed from an input string.
-            </summary>
-            <param name="input">Input to generate the GUID from.</param>
-            <returns>GUID hashed from input.</returns>
-        </member>
-        <member name="M:Utils.GetSqlConnectionString(NLog.Logger,DeviceBridge.Providers.SecretsProvider)">
-            <summary>
-            Fetches the sql connection string.
-            </summary>
-            <param name="logger">Logger.</param>
-            <param name="secretsProvider">Secrets provider for retrieving credentials.</param>
-            <returns>The sql connection string.</returns>
         </member>
         <member name="T:NotFoundResultFilterAttribute">
             <summary>
