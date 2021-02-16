@@ -189,19 +189,19 @@ export default class DeviceBridgeAPI {
     }
 
     private _telemetryURL(deviceId: string): string {
-        return `http://${this._bridgeURL}/devices/${deviceId}/messages/events`;
+        return `https://${this._bridgeURL}/devices/${deviceId}/messages/events`;
     }
 
     private _C2DMessageURL(deviceId: string): string {
-        return `http://${this._bridgeURL}/devices/${deviceId}/devicebound/sub`;
+        return `https://${this._bridgeURL}/devices/${deviceId}/devicebound/sub`;
     }
 
     private _CMDMessageURL(deviceId: string): string {
-        return `http://${this._bridgeURL}/devices/${deviceId}/methods/sub`;
+        return `https://${this._bridgeURL}/devices/${deviceId}/methods/sub`;
     }
 
     private _ConnectionStatusURL(deviceId: string): string {
-        return `http://${this._bridgeURL}/devices/${deviceId}/connectionstatus/sub`;
+        return `https://${this._bridgeURL}/devices/${deviceId}/connectionstatus/sub`;
     }
 
     private _reportedPropertiesURL(deviceId: string): string {
