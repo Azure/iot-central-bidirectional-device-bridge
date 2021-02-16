@@ -1,4 +1,4 @@
-# Azure IoT Central Device Bridge V2
+# Azure IoT Central Device Bridge
 The Device Bridge enables the connection of devices to Azure IoT Central in scenarios where it's not possible to use the Azure IoT Device SDKs.
 The solution in this repository deploys a set of resources to your Azure Subscription. Once deployed, it exposes a simple, yet powerful, HTTP interface
 that can be used for sending and receiving data between devices and Azure IoT. The solution can be used *as is* or customized with additional components,
