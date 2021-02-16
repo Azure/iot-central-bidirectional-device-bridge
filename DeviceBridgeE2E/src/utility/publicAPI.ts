@@ -120,7 +120,7 @@ export default class PublicAPI {
         });
     }
 
-    async ExecuteCommand(
+    async executeCommand(
         t: ExecutionContext,
         id: string,
         commandName: any

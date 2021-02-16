@@ -76,7 +76,7 @@ test.serial('Test device command callback', async t => {
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
     t.is(response.body.callbackUrl, callbackUrl)
 
-    await t.context.ctx.publicAPI.ExecuteCommand(t, t.context.device.id, "cmd");
+    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "cmd");
     var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var cmdInvocationValueBody = JSON.parse(cmdInvocationValue.body);
     t.is("cmd", cmdInvocationValueBody.methodName);
