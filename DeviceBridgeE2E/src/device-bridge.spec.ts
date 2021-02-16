@@ -69,7 +69,7 @@ function sleep(time: number) {
 
 test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
-    const callbackUrl = `${t.context.ctx.callbackUrl}?deviceId=${t.context.device.id}`;
+    const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
 
     // Ensure get works
@@ -89,7 +89,7 @@ test.serial('Test device command callback', async t => {
 
 test.serial('Test device connection status callback', async t => {
     // Create subscription to Azure Function
-    const callbackUrl = `${t.context.ctx.callbackUrl}?deviceId=${t.context.device.id}`;
+    const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(t, t.context.device.id, callbackUrl)
 
     // Ensure get works
