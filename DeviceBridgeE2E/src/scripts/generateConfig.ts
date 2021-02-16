@@ -33,7 +33,7 @@ async function main() {
             },
         }
     );
-S
+
     if (!cli.flags.bridgeUrl || !cli.flags.bridgeKey || !cli.flags.appUrl) {
         throw new Error('Missing parameters: bridge-url, bridge-key and app-url must be provided.');
     }

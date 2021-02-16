@@ -72,8 +72,8 @@ namespace DeviceBridge
             services.AddSingleton(_logger);
             services.AddSingleton<EncryptionService>();
             services.AddSingleton<IStorageProvider>(provider => new StorageProvider(sqlConnectionString, provider.GetRequiredService<EncryptionService>()));
-            services.AddSingleton(provider => new ConnectionManager(provider.GetRequiredService<Logger>(), idScope, sasKey, maxPoolSize, provider.GetRequiredService<IStorageProvider>()));
-            services.AddSingleton<ISubscriptionService>(provider => new SubscriptionService(provider.GetRequiredService<Logger>(), provider.GetRequiredService<ConnectionManager>(), provider.GetRequiredService<IStorageProvider>(), provider.GetRequiredService<IHttpClientFactory>(), rampupBatchSize, rampupBatchIntervalMs));
+            services.AddSingleton<IConnectionManager>(provider => new ConnectionManager(provider.GetRequiredService<Logger>(), idScope, sasKey, maxPoolSize, provider.GetRequiredService<IStorageProvider>()));
+            services.AddSingleton<ISubscriptionService>(provider => new SubscriptionService(provider.GetRequiredService<Logger>(), provider.GetRequiredService<IConnectionManager>(), provider.GetRequiredService<IStorageProvider>(), provider.GetRequiredService<IHttpClientFactory>(), rampupBatchSize, rampupBatchIntervalMs));
             services.AddSingleton<IBridgeService, BridgeService>();
             services.AddHttpClient("RetryClient").AddPolicyHandler(GetRetryPolicy(_logger));
 
@@ -114,7 +114,7 @@ namespace DeviceBridge
         /// <param name="env">The env.</param>
         /// <param name="lifetime">The lifetime.</param>
         /// <param name="connectionManager">The connection manager.</param>
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime, ConnectionManager connectionManager)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env, IHostApplicationLifetime lifetime, IConnectionManager connectionManager)
         {
             if (env.IsDevelopment())
             {

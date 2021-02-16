@@ -3,24 +3,17 @@ import got, { Response } from 'got';
 
 export default class PublicAPI {
     static async create(
-        subdomain: string,
-        baseDomain: string,
-        bearerToken: string,
+        appUrl: string,
+        bearerToken: string
     ): Promise<PublicAPI> {
-        return new PublicAPI(subdomain, baseDomain, bearerToken);
+        return new PublicAPI(appUrl, bearerToken);
     }
 
-    private _subdomain: string;
-    private _baseDomain: string;
+    private _appUrl: string;
     private _bearerToken: string;
 
-    private constructor(
-        subdomain: string,
-        baseDomain: string,
-        bearerToken: string
-    ) {
-        this._subdomain = subdomain;
-        this._baseDomain = baseDomain;
+    private constructor(appUrl: string, bearerToken: string) {
+        this._appUrl = appUrl;
         this._bearerToken = bearerToken;
     }
 
@@ -90,9 +83,9 @@ export default class PublicAPI {
         t: ExecutionContext,
         id: string,
         telemetryName: string
-    ): Promise<{[name: string]: any }> {
+    ): Promise<{ [name: string]: any }> {
         return this._retry(async () => {
-            const { body } = await got.get<{[name: string]: string} >(
+            const { body } = await got.get<{ [name: string]: string }>(
                 this._url(`/devices/${id}/telemetry/${telemetryName}`),
                 {
                     responseType: 'json',
@@ -109,10 +102,10 @@ export default class PublicAPI {
 
     async getProperties(
         t: ExecutionContext,
-        id: string,
-    ): Promise<{[name: string]: any }> {
+        id: string
+    ): Promise<{ [name: string]: any }> {
         return this._retry(async () => {
-            const { body } = await got.get<{[name: string]: string} >(
+            const { body } = await got.get<{ [name: string]: string }>(
                 this._url(`/devices/${id}/properties`),
                 {
                     responseType: 'json',
@@ -127,8 +120,35 @@ export default class PublicAPI {
         });
     }
 
+    async ExecuteCommand(
+        t: ExecutionContext,
+        id: string,
+        commandName: any
+    ): Promise<{ [name: string]: any }> {
+        return this._retry(async () => {
+            const { body } = await got.post<{ [name: string]: string }>(
+                this._url(`/devices/${id}/commands/${commandName}`),
+                {
+                    json: {
+                        connectionTimeout: 10,
+                        responseTimeout: 10,
+                        request: {
+                        },
+                    },
+                    responseType: 'json',
+                    headers: await this._headers(),
+                    hooks: {
+                        afterResponse: [this._logger(t, 'POST')],
+                    },
+                }
+            );
+
+            return body;
+        });
+    }
+
     private _url(path: string): string {
-        return `https://${this._subdomain}.${this._baseDomain}/api/preview${path}`;
+        return `https://${this._appUrl}/api/preview${path}`;
     }
 
     private async _headers(): Promise<{ [name: string]: string }> {
@@ -195,7 +215,6 @@ export interface DeviceCredentials {
         primaryKey: string;
         secondaryKey: string;
     };
-    // Other stuff omitted for brevity
 }
 
 export interface DeviceTemplate {
