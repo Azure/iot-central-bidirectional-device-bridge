@@ -19,8 +19,6 @@
   "author": "Microsoft",
   "license": "MIT",
   "devDependencies": {
-    "@azure-iot/tsconfig": "^1.0.0",
-    "@azure-iot/tslint-config": "^1.2.2",
     "@types/node": "^12.19.12",
     "prettier": "^2.2.1",
     "rimraf": "^3.0.2",
