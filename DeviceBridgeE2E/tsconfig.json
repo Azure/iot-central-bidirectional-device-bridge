@@ -1,8 +1,0 @@
-{
-    "extends": "@azure-iot/tsconfig",
-    "compilerOptions": {
-        "rootDir": "./src",
-        "noEmit": true,
-        "esModuleInterop": true
-    }
-}
