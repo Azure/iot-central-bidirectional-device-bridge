@@ -27,16 +27,16 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
             APP_URL = arg.split('=')[1];
         }
         if(arg.startsWith("--device-bridge-url=")){
-            DEVICE_BRIDGE_URL = arg.split('=')[1];
+            DEVICE_BRIDGE_URL = arg.split('=')[1].trim();
         }
         if(arg.startsWith("--device-bridge-key=")){
-            DEVICE_BRIDGE_KEY = arg.split('=')[1];
+            DEVICE_BRIDGE_KEY = arg.split('=')[1].trim();
         }
         if(arg.startsWith("--azure-function-url=")){
-            AZURE_FUNCTION_URL = arg.split('=')[1];
+            AZURE_FUNCTION_URL = arg.split('=')[1].trim();
         }
         if(arg.startsWith("--bearer-token=")){
-            BEARER_TOKEN = arg.split('=')[1];
+            BEARER_TOKEN = arg.split('=')[1].trim();
         }
     })
 
