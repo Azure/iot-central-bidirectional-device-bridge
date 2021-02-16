@@ -24,7 +24,7 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
 
     args.forEach(arg => {
         if(arg.startsWith("--app-url=")){
-            APP_URL = arg.split('=')[1];
+            APP_URL = arg.split('=')[1].trim();
         }
         if(arg.startsWith("--device-bridge-url=")){
             DEVICE_BRIDGE_URL = arg.split('=')[1].trim();
