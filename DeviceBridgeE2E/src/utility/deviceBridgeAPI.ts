@@ -185,7 +185,7 @@ export default class DeviceBridgeAPI {
 
     
     private _echoUrl(deviceId: string): string {
-        return `${this._azureFunctionUrl}?deviceId=${deviceId}`;
+        return `${this._azureFunctionUrl}&deviceId=${deviceId}`;
     }
 
     private _telemetryURL(deviceId: string): string {
@@ -205,11 +205,11 @@ export default class DeviceBridgeAPI {
     }
 
     private _reportedPropertiesURL(deviceId: string): string {
-        return `http://${this._bridgeURL}/devices/${deviceId}/twin/properties/reported`;
+        return `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/reported`;
     }
 
     private _getTwinURL(deviceId: string): string {
-        return `http://${this._bridgeURL}/devices/${deviceId}/twin`;
+        return `https://${this._bridgeURL}/devices/${deviceId}/twin`;
     }
 
     private async _headers(): Promise<{ [name: string]: string }> {
