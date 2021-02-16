@@ -15,10 +15,17 @@ export interface TestContext {
 }
 
 export async function setup(t: ExecutionContext): Promise<TestContext> {
-    var publicAPI = await PublicAPI.create("test", "test", /*config.getRequired("APP_URL"), config.getRequired("BEARER_TOKEN")*/);
-    var deviceBridgAPI = await DeviceBridgeAPI.create("test", "test", "test",/*config.getRequired("DEVICE_BRIDGE_URL"), config.getRequired("DEVICE_BRIDGE_KEY"), config.getRequired("AZURE_FUNCTION_URL")*/);
-    var callbackUrl = "test"; //config.getRequired("AZURE_FUNCTION_URL") as string;
+    var args = process.argv.slice(2);
+    var APP_URL = args[0];
+    var DEVICE_BRIDGE_URL = args[1];
+    var DEVICE_BRIDGE_KEY = args[2];
+    var AZURE_FUNCTION_URL = args[3];
+    var BEARER_TOKEN = args[4];
 
+    var publicAPI = await PublicAPI.create(APP_URL,BEARER_TOKEN);
+    var deviceBridgAPI = await DeviceBridgeAPI.create(DEVICE_BRIDGE_URL, DEVICE_BRIDGE_KEY, AZURE_FUNCTION_URL);
+    var callbackUrl = AZURE_FUNCTION_URL;
+    
     return {
         publicAPI,
         deviceBridgAPI,
