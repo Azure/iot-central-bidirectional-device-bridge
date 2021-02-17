@@ -71,10 +71,9 @@ test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
-
+    await sleep(3000);
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
-    await sleep(3000);
     t.is(response.body.callbackUrl, callbackUrl)
     t.is(response.body.status, "Running");
     await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "cmd");
