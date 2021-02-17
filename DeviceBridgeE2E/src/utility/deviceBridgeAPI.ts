@@ -81,6 +81,7 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         callbackUrl: string
     ): Promise<any> {
+        t.log()
         await got.put<any>(this._CMDMessageURL(deviceId), {
             json: {callbackUrl},
             responseType: 'json',

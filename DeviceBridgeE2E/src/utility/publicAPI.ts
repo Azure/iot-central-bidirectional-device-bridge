@@ -4,17 +4,17 @@ import got, { Response } from 'got';
 export default class PublicAPI {
     static async create(
         appUrl: string,
-        bearerToken: string
+        apiToken: string
     ): Promise<PublicAPI> {
-        return new PublicAPI(appUrl, bearerToken);
+        return new PublicAPI(appUrl, apiToken);
     }
 
     private _appUrl: string;
-    private _bearerToken: string;
+    private _apiToken: string;
 
-    private constructor(appUrl: string, bearerToken: string) {
+    private constructor(appUrl: string, apiToken: string) {
         this._appUrl = appUrl;
-        this._bearerToken = bearerToken;
+        this._apiToken = apiToken;
     }
 
     async createDeviceTemplate(
@@ -153,7 +153,7 @@ export default class PublicAPI {
 
     private async _headers(): Promise<{ [name: string]: string }> {
         return {
-            Authorization: `Bearer ${this._bearerToken}`,
+            Authorization: `${this._apiToken}`,
         };
     }
 
