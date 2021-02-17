@@ -24,19 +24,19 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
 
     args.forEach(arg => {
         if(arg.startsWith("--app-url=")){
-            APP_URL = arg.split('=')[1].trim();
+            APP_URL = arg.substring(arg.indexOf('=')+1).trim();
         }
         if(arg.startsWith("--device-bridge-url=")){
-            DEVICE_BRIDGE_URL = arg.split('=')[1].trim();
+            DEVICE_BRIDGE_URL = arg.substring(arg.indexOf('=')+1).trim();
         }
         if(arg.startsWith("--device-bridge-key=")){
-            DEVICE_BRIDGE_KEY = arg.split('=')[1].trim();
+            DEVICE_BRIDGE_KEY = arg.substring(arg.indexOf('=')+1).trim();
         }
         if(arg.startsWith("--azure-function-url=")){
-            AZURE_FUNCTION_URL = arg.split('=')[1].trim();
+            AZURE_FUNCTION_URL = arg.substring(arg.indexOf('=')+1).trim();
         }
         if(arg.startsWith("--bearer-token=")){
-            BEARER_TOKEN = arg.split('=')[1].trim();
+            BEARER_TOKEN = arg.substring(arg.indexOf('=')+1).trim();
         }
     })
 
