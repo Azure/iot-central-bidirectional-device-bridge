@@ -20,7 +20,7 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
     var DEVICE_BRIDGE_URL = "";
     var DEVICE_BRIDGE_KEY = "";
     var AZURE_FUNCTION_URL = "";
-    var BEARER_TOKEN = "";
+    var API_TOKEN = "";
 
     args.forEach(arg => {
         if(arg.startsWith("--app-url=")){
@@ -35,12 +35,12 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
         if(arg.startsWith("--azure-function-url=")){
             AZURE_FUNCTION_URL = arg.substring(arg.indexOf('=')+1).trim();
         }
-        if(arg.startsWith("--bearer-token=")){
-            BEARER_TOKEN = arg.substring(arg.indexOf('=')+1).trim();
+        if(arg.startsWith("--api-token=")){
+            API_TOKEN = arg.substring(arg.indexOf('=')+1).trim();
         }
     })
 
-    var publicAPI = await PublicAPI.create(APP_URL,BEARER_TOKEN);
+    var publicAPI = await PublicAPI.create(APP_URL,API_TOKEN);
     var deviceBridgAPI = await DeviceBridgeAPI.create(DEVICE_BRIDGE_URL, DEVICE_BRIDGE_KEY, AZURE_FUNCTION_URL);
     var callbackUrl = AZURE_FUNCTION_URL;
     
