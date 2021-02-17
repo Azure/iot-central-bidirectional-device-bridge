@@ -74,7 +74,7 @@ test.serial('Test device command callback', async t => {
 
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
-    sleep(2000);
+    sleep(15000);
     t.is(response.body.callbackUrl, callbackUrl)
     t.is(response.body.status, "Running");
     await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "cmd");
