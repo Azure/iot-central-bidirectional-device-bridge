@@ -100,6 +100,28 @@ export default class PublicAPI {
         });
     }
 
+    async setProperties(
+        t: ExecutionContext,
+        id: string,
+        bodyJson: any
+    ): Promise<{ [name: string]: any }> {
+        return this._retry(async () => {
+            const { body } = await got.put<{ [name: string]: string }>(
+                this._url(`/devices/${id}/properties`),
+                {
+                    responseType: 'json',
+                    json: bodyJson,
+                    headers: await this._headers(),
+                    hooks: {
+                        afterResponse: [this._logger(t, 'GET')],
+                    },
+                }
+            );
+
+            return body;
+        });
+    }
+
     async getProperties(
         t: ExecutionContext,
         id: string

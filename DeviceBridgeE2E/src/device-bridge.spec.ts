@@ -6,6 +6,7 @@ import * as util from 'util';
 import * as fs from 'fs';
 import DeviceClient from './utility/device';
 import { assert } from 'console';
+import { sleep } from './utility/helpers'
 
 const test = anyTest as TestInterface<{
     ctx: TestContext;
@@ -22,6 +23,8 @@ test.before(async t => {
             'utf-8'
         )
     );
+
+    t.context.template = deviceTemplate;
 
     await t.context.ctx.publicAPI.createDeviceTemplate(t, deviceTemplate);
 
@@ -63,15 +66,14 @@ test.before(async t => {
     );
 });
 
-function sleep(time: number) {
-    return new Promise(resolve => setTimeout(resolve, time));
-}
+
+
 
 test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
-    await sleep(3000);
+    
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
     t.is(response.body.callbackUrl, callbackUrl)
@@ -96,7 +98,7 @@ test.serial('Test device connection status callback', async t => {
 
     // Ensure connection created event when a sub created
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
-    await sleep(2000);
+    await sleep(3000);
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var invocationValueBody = JSON.parse(invocationValue.body);
     t.is(invocationValueBody.status, "Connected");
@@ -105,6 +107,35 @@ test.serial('Test device connection status callback', async t => {
 
     // Ensure connection deleted event when a sub deleted
     await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
+    await sleep(2000);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValueBody = JSON.parse(invocationValue.body);
+    t.is(invocationValueBody.status, "Disabled");
+    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.deviceId, t.context.device.id);
+});
+
+test.serial('Test device desired property update callback', async t => {
+    // Create subscription to Azure Function
+    const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
+    await t.context.ctx.deviceBridgAPI.createDesiredPropertySubscription(t, t.context.device.id, callbackUrl)
+    await sleep(3000);
+
+    // Ensure get works
+    var response = await t.context.ctx.deviceBridgAPI.getDesiredPropertySubscription(t, t.context.device.id);
+    t.is(response.body.callbackUrl, callbackUrl)
+    t.is(response.body.status, "Running");
+    var propTestValue = "test";
+    await t.context.ctx.publicAPI.setProperties(t, t.context.device.id, {rwProp: propTestValue});
+    await sleep(3000);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValueBody = JSON.parse(invocationValue.body);
+    t.is(invocationValueBody.desiredProperties.rwProp, propTestValue);
+    t.is(invocationValueBody.eventType, "DesiredPropertyUpdate");
+    t.is(invocationValueBody.deviceId, t.context.device.id);
+
+    // Ensure connection deleted event when a sub deleted
+    await t.context.ctx.deviceBridgAPI.deleteDesiredPropertySubscription(t, t.context.device.id);
     await sleep(2000);
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var invocationValueBody = JSON.parse(invocationValue.body);
@@ -164,5 +195,11 @@ test.serial('Test reported properties and twin', async t => {
     var twinResult = await t.context.ctx.deviceBridgAPI.getTwin(t, t.context.device.id)
     t.is(reportedPropertiesBody.patch.rwProp, twinResult.twin.properties.reported.rwProp)
 });
+
+test.serial('Test device provisoning endpoint', async t => {
+    var result = await t.context.ctx.deviceBridgAPI.registerDevice(t, "registrationDevice", {modelId: t.context.template.id})
+    t.is(200, result.statusCode)
+});
+
 
 
