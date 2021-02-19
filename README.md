@@ -1,8 +1,10 @@
-# Azure IoT Central Device Bridge
+# Azure IoT Central Device Bridge (Send and Receive Data with AMQP)
 The Device Bridge enables the connection of devices to Azure IoT Central in scenarios where it's not possible to use the Azure IoT Device SDKs.
 The solution in this repository deploys a set of resources to your Azure Subscription. Once deployed, it exposes a simple, yet powerful, HTTP interface
-that can be used for sending and receiving data between devices and Azure IoT. The solution can be used *as is* or customized with additional components,
+that can be used for sending and receiving* data between devices and Azure IoT. The solution can be used *as is* or customized with additional components,
 such as data transformation and protocol adapter modules.
+
+> * If you only need to send data, look at https://github.com/Azure/iotc-device-bridge.  It sends data using HTTP and can run in an Azure Function.
 
 - [Deployment instructions](#deployment-instructions)
   * [1 - Build and push the Docker image](#1---build-and-push-the-docker-image)
@@ -375,5 +377,4 @@ The diagrams below illustrate the original Bridge architecture and how a custom 
 
 ![Original architecture](Docs/Assets/original-architecture.png "original architecture")
 ![Adapter architecture](Docs/Assets/adapter-architecture.png "adapter architecture")
-
 
