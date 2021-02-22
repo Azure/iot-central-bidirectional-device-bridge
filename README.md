@@ -4,7 +4,7 @@ The solution in this repository deploys a set of resources to your Azure Subscri
 that can be used for sending and receiving* data between devices and Azure IoT. The solution can be used *as is* or customized with additional components,
 such as data transformation and protocol adapter modules.
 
-> * If you only need to send data, look at https://github.com/Azure/iotc-device-bridge.  It sends data using HTTP and can run in an Azure Function.
+\* If you only need to send data, look at https://github.com/Azure/iotc-device-bridge.  It sends data using HTTP and can run in an Azure Function.
 
 - [Deployment instructions](#deployment-instructions)
   * [1 - Build and push the Docker image](#1---build-and-push-the-docker-image)
