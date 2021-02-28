@@ -5,18 +5,18 @@
             "http://azureiot.com/v1/contexts/solutionmodel.json",
             "http://azureiot.com/v1/contexts/modeldefinition.json"
         ],
-        "@id": "dtmi:jeff:Basic9;1",
+        "@id": "dtmi:test:Basic9;1",
         "@type": "CapabilityModel",
         "contents": [
             {
-                "@id": "dtmi:jeff:Basic8:temperature;1",
+                "@id": "dtmi:test:Basic8:temperature;1",
                 "@type": ["Telemetry", "SemanticType/Temperature"],
                 "displayName": "temperature",
                 "name": "temperature",
                 "schema": "double"
             },
             {
-                "@id": "dtmi:jeff:Basic8:cmd;2",
+                "@id": "dtmi:test:Basic8:cmd;2",
                 "@type": "Command",
                 "commandType": "synchronous",
                 "displayName": {
@@ -25,14 +25,14 @@
                 "name": "cmd"
             },
             {
-                "@id": "dtmi:jeff:Basic8:humidity;1",
+                "@id": "dtmi:test:Basic8:humidity;1",
                 "@type": ["Telemetry", "SemanticType/Humidity"],
                 "displayName": "humidity",
                 "name": "humidity",
                 "schema": "double"
             },
             {
-                "@id": "dtmi:jeff:Basic8:rwProp;1",
+                "@id": "dtmi:test:Basic8:rwProp;1",
                 "@type": "Property",
                 "displayName": "rw-prop",
                 "name": "rwProp",
@@ -40,37 +40,37 @@
                 "writable": true
             },
             {
-                "@id": "dtmi:jeff:Basic8:Basic2qi;1",
+                "@id": "dtmi:test:Basic8:Basic2qi;1",
                 "@type": "Component",
                 "displayName": "Component",
                 "name": "Basic2qi",
                 "schema": {
-                    "@id": "dtmi:jeff:Basic2qi;1",
+                    "@id": "dtmi:test:Basic2qi;1",
                     "@type": "Interface",
                     "contents": [
                         {
-                            "@id": "dtmi:jeff:Basic2qi:nestedTemperature;1",
+                            "@id": "dtmi:test:Basic2qi:nestedTemperature;1",
                             "@type": ["Telemetry", "SemanticType/Temperature"],
                             "displayName": "nested-temperature",
                             "name": "nestedTemperature",
                             "schema": "double"
                         },
                         {
-                            "@id": "dtmi:jeff:Basic2qi:nestedHumidity;1",
+                            "@id": "dtmi:test:Basic2qi:nestedHumidity;1",
                             "@type": ["Telemetry", "SemanticType/Humidity"],
                             "displayName": "nested-humidity",
                             "name": "nestedHumidity",
                             "schema": "double"
                         },
                         {
-                            "@id": "dtmi:jeff:Basic2qi:nestedROProp;1",
+                            "@id": "dtmi:test:Basic2qi:nestedROProp;1",
                             "@type": "Property",
                             "displayName": "nested-ro-prop",
                             "name": "nestedROProp",
                             "schema": "string"
                         },
                         {
-                            "@id": "dtmi:jeff:Basic2qi:nestedRWProp;1",
+                            "@id": "dtmi:test:Basic2qi:nestedRWProp;1",
                             "@type": "Property",
                             "displayName": "nested-rw-prop",
                             "name": "nestedRWProp",
@@ -82,7 +82,7 @@
                 }
             },
             {
-                "@id": "dtmi:jeff:Basic8:roProp;1",
+                "@id": "dtmi:test:Basic8:roProp;1",
                 "@type": "Property",
                 "displayName": "ro-prop",
                 "name": "roProp",

@@ -6,7 +6,8 @@ import * as util from 'util';
 import * as fs from 'fs';
 import DeviceClient from './utility/device';
 import { assert } from 'console';
-import { sleep } from './utility/helpers'
+import { sleep, makeString } from './utility/helpers'
+import got from 'got/dist/source';
 
 const test = anyTest as TestInterface<{
     ctx: TestContext;
@@ -87,14 +88,18 @@ test.serial('Test device command callback', async t => {
     await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
 });
 
-test.serial('Test device connection status callback', async t => {
+test.serial('Test device connection status callback and get', async t => {
+    // Get connection status
+    var initialConnectionStatus = await t.context.ctx.deviceBridgAPI.getConnectionStatus(t, t.context.device.id);
+    t.is("Disabled", initialConnectionStatus.body.status);
+
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(t, t.context.device.id, callbackUrl)
-
+    await sleep(3000);
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(t, t.context.device.id);
-    assert(callbackUrl, response.callbackUrl)
+    t.is(callbackUrl, response.body.callbackUrl)
 
     // Ensure connection created event when a sub created
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
@@ -104,6 +109,9 @@ test.serial('Test device connection status callback', async t => {
     t.is(invocationValueBody.status, "Connected");
     t.is(invocationValueBody.eventType, "ConnectionStatusChange");
     t.is(invocationValueBody.deviceId, t.context.device.id);
+
+    var connectionStatus = await t.context.ctx.deviceBridgAPI.getConnectionStatus(t, t.context.device.id);
+    t.is("Connected", connectionStatus.body.status);
 
     // Ensure connection deleted event when a sub deleted
     await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
@@ -125,7 +133,7 @@ test.serial('Test device desired property update callback', async t => {
     var response = await t.context.ctx.deviceBridgAPI.getDesiredPropertySubscription(t, t.context.device.id);
     t.is(response.body.callbackUrl, callbackUrl)
     t.is(response.body.status, "Running");
-    var propTestValue = "test";
+    var propTestValue = makeString(10);
     await t.context.ctx.publicAPI.setProperties(t, t.context.device.id, {rwProp: propTestValue});
     await sleep(3000);
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
@@ -145,7 +153,7 @@ test.serial('Test device desired property update callback', async t => {
 });
 
 test.serial('Test device to cloud messaging', async t => {
-    const temperatureValue = 120;
+    const temperatureValue = Math.random() * 1000;
     await t.context.ctx.deviceBridgAPI.sendTelemetry(t, t.context.device.id, {
         data: { temperature: temperatureValue },
     });
@@ -161,7 +169,7 @@ test.serial('Test device to cloud messaging', async t => {
         if (telemetryResult != {} && telemetryResult.value != undefined) {
             break;
         }
-        await new Promise(r => setTimeout(r, 2000));
+        sleep(2000);
         telemetryResult = await t.context.ctx.publicAPI.getLatestDeviceTelemetry(
             t,
             t.context.device.id,
@@ -174,7 +182,7 @@ test.serial('Test device to cloud messaging', async t => {
 test.serial('Test reported properties and twin', async t => {
     var reportedPropertiesBody = {
         "patch": {
-            "rwProp": "testValue",
+            "rwProp": makeString(10),
         }
     }
 
@@ -199,6 +207,28 @@ test.serial('Test reported properties and twin', async t => {
 test.serial('Test device provisoning endpoint', async t => {
     var result = await t.context.ctx.deviceBridgAPI.registerDevice(t, "registrationDevice", {modelId: t.context.template.id})
     t.is(200, result.statusCode)
+});
+
+test.serial('Test health endpoint', async t => {
+    var result = await t.context.ctx.deviceBridgAPI.getHealth(t);
+    t.is("Healthy", result)
+});
+
+test.serial('Test auth', async t => {
+    var urls = await t.context.ctx.deviceBridgAPI.getUrlFuncs();
+    const headers = {
+        'x-api-key': t.context.ctx.apiToken,
+    };
+
+    for(const [_, url] of Object.entries(urls)){
+        // Test get, no auth
+        await got<any>(url()).then(async (result) => {
+            t.truthy(result.statusCode == 401, `Status code was ${result.statusCode} instead of 401 for url: ${url()}`);
+            // Test to make sure has access with token
+            result = await got<any>(url(), { headers });
+            t.truthy(result.statusCode != 401)
+        }).catch(() => {}/*catch 405*/);
+    }
 });
 
 
