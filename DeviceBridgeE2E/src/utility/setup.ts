@@ -11,7 +11,8 @@ export interface ServicePrincipal {
 export interface TestContext {
     publicAPI: PublicAPI;
     deviceBridgAPI: DeviceBridgeAPI;
-    callbackUrl: string
+    callbackUrl: string,
+    apiToken: string,
 }
 
 export async function setup(t: ExecutionContext): Promise<TestContext> {
@@ -47,6 +48,7 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
     return {
         publicAPI,
         deviceBridgAPI,
-        callbackUrl
+        callbackUrl,
+        apiToken: API_TOKEN
     };
 }

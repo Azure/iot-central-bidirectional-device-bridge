@@ -7,12 +7,13 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using Microsoft.Extensions.Primitives;
+using System.Collections.Concurrent;
 
 namespace FunctionApp1
 {
     public static class DeviceBridgeE2EEcho
     {
-        static Dictionary<string, string> cache = new Dictionary<string, string>();
+        static ConcurrentDictionary<string, string> cache = new ConcurrentDictionary<string, string>();
 
         // Temporary storage for Device Bridge E2E testing.
         // deviceId must be passed as a query param.
@@ -40,15 +41,25 @@ namespace FunctionApp1
             {
                 if (cache.ContainsKey(deviceId))
                 {
-                    cache.Remove(deviceId);
+                    cache.TryRemove(deviceId, _);
+                    if (!cache.TryRemove(deviceId, _))
+                    {
+                        return new ConflictObjectResult("Conflict when adding to dictionary");
+                    }
                 }
-                cache.Add(deviceId, requestBody);
+                if(!cache.TryAdd(deviceId, requestBody))
+                {
+                    return new ConflictObjectResult("Conflict when adding to dictionary");
+                }
             } else if(req.Method == "DELETE")
             {
-                cache.Remove(deviceId);
+                if(!cache.TryRemove(deviceId, _))
+                {
+                    return new ConflictObjectResult("Conflict when deleting from dictionary");
+                }
             }
 
-            return new OkObjectResult("undefined");
+            return new OkObjectResult("Undefined");
         }
     }
 }

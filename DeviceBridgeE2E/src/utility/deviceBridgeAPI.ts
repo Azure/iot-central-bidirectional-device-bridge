@@ -25,7 +25,7 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         telemetry: any
     ): Promise<any> {
-        await got.post<any>(this._getTelemetryURL(deviceId), {
+        await got.post<any>(this.getUrlFuncs()["telemetry"](deviceId), {
             json: telemetry,
             responseType: 'json',
             headers: await this._headers(),
@@ -40,7 +40,7 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         propertiesBody: any
     ): Promise<any> {
-        await got.patch<any>(this._getReportedPropertiesURL(deviceId), {
+        await got.patch<any>(this.getUrlFuncs()["reportedProperties"](deviceId), {
             json: propertiesBody,
             responseType: 'json',
             headers: await this._headers(),
@@ -51,11 +51,21 @@ export default class DeviceBridgeAPI {
     }
 
     async getTwin(t: ExecutionContext, deviceId: string): Promise<any> {
-        const { body } = await got<any>(this._getTwinURL(deviceId), {
+        const { body } = await got<any>(this.getUrlFuncs()["twin"](deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
-                afterResponse: [this._logger(t, 'PATCH')],
+                afterResponse: [this._logger(t, 'GET')],
+            },
+        });
+        return body;
+    }
+
+    async getHealth(t: ExecutionContext): Promise<any> {
+        const { body } = await got<any>(this.getUrlFuncs()["health"](), {
+            headers: await this._headers(),
+            hooks: {
+                afterResponse: [this._logger(t, 'GET')],
             },
         });
         return body;
@@ -66,7 +76,7 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         callbackUrl: string
     ): Promise<any> {
-        await got.put<any>(this._GetC2DMessageURL(deviceId), {
+        await got.put<any>(this.getUrlFuncs()["C2DMessage"](deviceId), {
             json: {callbackUrl},
             responseType: 'json',
             headers: await this._headers(),
@@ -82,7 +92,7 @@ export default class DeviceBridgeAPI {
         callbackUrl: string
     ): Promise<any> {
         t.log()
-        await got.put<any>(this._getCMDUrl(deviceId), {
+        await got.put<any>(this.getUrlFuncs()["cmd"](deviceId), {
             json: {callbackUrl},
             responseType: 'json',
             headers: await this._headers(),
@@ -98,7 +108,7 @@ export default class DeviceBridgeAPI {
         callbackUrl: string
     ): Promise<any> {
         t.log()
-        await got.put<any>(this._getDesiredPropertyUrl(deviceId), {
+        await got.put<any>(this.getUrlFuncs()["desiredProperties"](deviceId), {
             json: {callbackUrl},
             responseType: 'json',
             headers: await this._headers(),
@@ -113,7 +123,7 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         callbackUrl: string
     ): Promise<any> {
-        await got.put<any>(this._getConnectionStatusURL(deviceId), {
+        await got.put<any>(this.getUrlFuncs()["connectionStatus"](deviceId) + "/sub", {
             json: {callbackUrl},
             responseType: 'json',
             headers: await this._headers(),
@@ -127,7 +137,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got<any>(this._GetC2DMessageURL(deviceId), {
+        return await got<any>(this.getUrlFuncs()["C2DMessage"](deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -140,7 +150,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got<any>(this._getCMDUrl(deviceId), {
+        return await got<any>(this.getUrlFuncs()["cmd"](deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -153,7 +163,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got<any>(this._getDesiredPropertyUrl(deviceId), {
+        return await got<any>(this.getUrlFuncs()["desiredProperties"](deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -166,7 +176,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got.delete<any>(this._getCMDUrl(deviceId), {
+        return await got.delete<any>(this.getUrlFuncs()["cmd"](deviceId), {
             headers: await this._headers(),
             hooks: {
                 afterResponse: [this._logger(t, 'DELETE')],
@@ -178,7 +188,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got.delete<any>(this._getDesiredPropertyUrl(deviceId), {
+        return await got.delete<any>(this.getUrlFuncs()["desiredProperties"](deviceId), {
             headers: await this._headers(),
             hooks: {
                 afterResponse: [this._logger(t, 'DELETE')],
@@ -190,7 +200,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got<any>(this._getConnectionStatusURL(deviceId), {
+        return await got<any>(this.getUrlFuncs()["connectionStatus"](deviceId) + "/sub", {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -199,12 +209,26 @@ export default class DeviceBridgeAPI {
         });
     }
 
+    async getConnectionStatus(
+        t: ExecutionContext,
+        deviceId: string
+    ): Promise<any> {
+        return await got<any>(this.getUrlFuncs()["connectionStatus"](deviceId), {
+            responseType: 'json',
+            headers: await this._headers(),
+            hooks: {
+                afterResponse: [this._logger(t, 'GET')],
+            },
+        });
+    }
+
+
     async registerDevice(
         t: ExecutionContext,
         deviceId: string,
         body: any,
     ): Promise<any> {
-        return await got.post<any>(this._getRegistrationUrl(deviceId), {
+        return await got.post<any>(this.getUrlFuncs()["registration"](deviceId), {
             json: body,
             responseType: 'json',
             headers: await this._headers(),
@@ -218,7 +242,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got<any>(this._echoUrl(deviceId), {
+        return await got<any>(this.getEchoUrl(deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -231,7 +255,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got.delete<any>(this._echoUrl(deviceId), {
+        return await got.delete<any>(this.getUrlFuncs()["echo"](deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -240,41 +264,22 @@ export default class DeviceBridgeAPI {
         });
     }
 
-    
-    private _echoUrl(deviceId: string): string {
+    private getEchoUrl(deviceId: string): string {
         return `${this._azureFunctionUrl}&deviceId=${deviceId}`;
     }
 
-    private _getRegistrationUrl(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/registration`;
-    }
-
-    private _getTelemetryURL(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/messages/events`;
-    }
-
-    private _GetC2DMessageURL(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/devicebound/sub`;
-    }
-
-    private _getCMDUrl(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/methods/sub`;
-    }
-
-    private _getDesiredPropertyUrl(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/desired/sub`;
-    }
-
-    private _getConnectionStatusURL(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/connectionstatus/sub`;
-    }
-
-    private _getReportedPropertiesURL(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/reported`;
-    }
-
-    private _getTwinURL(deviceId: string): string {
-        return `https://${this._bridgeURL}/devices/${deviceId}/twin`;
+    getUrlFuncs():object {
+        return {
+            registration: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/registration`,
+            telemetry: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/messages/events`,
+            C2DMessage: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/devicebound/sub`,
+            cmd: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/methods/sub`,
+            desiredProperties: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/desired/sub`,
+            connectionStatus: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/connectionstatus`,
+            reportedProperties: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/reported`,
+            twin: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin`,
+            health: (empty = "") => `https://${this._bridgeURL}/health`
+        };
     }
 
     private async _headers(): Promise<{ [name: string]: string }> {

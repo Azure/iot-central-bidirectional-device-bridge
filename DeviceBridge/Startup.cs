@@ -137,7 +137,7 @@ namespace DeviceBridge
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();
-                endpoints.MapHealthChecks("/health");
+                endpoints.MapHealthChecks("/health").RequireAuthorization();
             });
         }
 
