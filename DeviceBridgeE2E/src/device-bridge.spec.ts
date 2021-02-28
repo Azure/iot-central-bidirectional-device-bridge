@@ -74,7 +74,7 @@ test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
-    
+    await sleep(3000);
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
     t.is(response.body.callbackUrl, callbackUrl)
@@ -169,7 +169,7 @@ test.serial('Test device to cloud messaging', async t => {
         if (telemetryResult != {} && telemetryResult.value != undefined) {
             break;
         }
-        sleep(2000);
+        await sleep(2000);
         telemetryResult = await t.context.ctx.publicAPI.getLatestDeviceTelemetry(
             t,
             t.context.device.id,
@@ -226,6 +226,30 @@ test.serial('Test auth', async t => {
             t.truthy(result.statusCode == 401, `Status code was ${result.statusCode} instead of 401 for url: ${url()}`);
             // Test to make sure has access with token
             result = await got<any>(url(), { headers });
+            t.truthy(result.statusCode != 401)
+        }).catch(() => {}/*catch 405*/);
+
+        // Test post, no auth
+        await got.post<any>(url()).then(async (result) => {
+            t.truthy(result.statusCode == 401, `Status code was ${result.statusCode} instead of 401 for url: ${url()}`);
+            // Test to make sure has access with token
+            result = await got.post<any>(url(), { headers });
+            t.truthy(result.statusCode != 401)
+        }).catch(() => {}/*catch 405*/);
+
+        // Test put, no auth
+        await got.put<any>(url()).then(async (result) => {
+            t.truthy(result.statusCode == 401, `Status code was ${result.statusCode} instead of 401 for url: ${url()}`);
+            // Test to make sure has access with token
+            result = await got.put<any>(url(), { headers });
+            t.truthy(result.statusCode != 401)
+        }).catch(() => {}/*catch 405*/);
+
+        // Test delete, no auth
+        await got.delete<any>(url()).then(async (result) => {
+            t.truthy(result.statusCode == 401, `Status code was ${result.statusCode} instead of 401 for url: ${url()}`);
+            // Test to make sure has access with token
+            result = await got.delete<any>(url(), { headers });
             t.truthy(result.statusCode != 401)
         }).catch(() => {}/*catch 405*/);
     }
