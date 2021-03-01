@@ -67,8 +67,9 @@ test.before(async t => {
     );
 });
 
-
-
+test.after(async t => {
+    await t.context.ctx.publicAPI.deleteDevice(t, t.context.device.id);
+});
 
 test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
@@ -83,6 +84,24 @@ test.serial('Test device command callback', async t => {
     var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var cmdInvocationValueBody = JSON.parse(cmdInvocationValue.body);
     t.is("cmd", cmdInvocationValueBody.methodName);
+    t.is("DirectMethodInvocation", cmdInvocationValueBody.eventType);
+    t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
+    await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
+});
+
+test.serial('Test C2D callback', async t => {
+    // Create subscription to Azure Function
+    const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
+    await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
+    await sleep(3000);
+    // Ensure get works
+    var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
+    t.is(response.body.callbackUrl, callbackUrl)
+    t.is(response.body.status, "Running");
+    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "c2d");
+    var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var cmdInvocationValueBody = JSON.parse(cmdInvocationValue.body);
+    t.is("c2d", cmdInvocationValueBody.methodName);
     t.is("DirectMethodInvocation", cmdInvocationValueBody.eventType);
     t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
     await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);

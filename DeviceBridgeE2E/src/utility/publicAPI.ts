@@ -59,6 +59,20 @@ export default class PublicAPI {
         });
     }
 
+    async deleteDevice(
+        t: ExecutionContext,
+        deviceId: string
+    ): Promise<any> {
+        return this._retry(async () => {
+            const { body } = await got.delete<Required<Device>>(
+                this._url(`/devices/${deviceId}`),
+                { headers: await this._headers() }
+            );
+
+            return body;
+        });
+    }
+
     async getDeviceCredentials(
         t: ExecutionContext,
         id: string
