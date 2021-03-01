@@ -25,6 +25,14 @@
                 "name": "cmd"
             },
             {
+                "@id": "dtmi:test:Basic8:c2d;1",
+                "@type": "Command",
+                "displayName": {
+                    "en": "c2d"
+                },
+                "name": "c2d"
+            },
+            {
                 "@id": "dtmi:test:Basic8:humidity;1",
                 "@type": ["Telemetry", "SemanticType/Humidity"],
                 "displayName": "humidity",
