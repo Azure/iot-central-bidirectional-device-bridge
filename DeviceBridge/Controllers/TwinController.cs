@@ -50,7 +50,7 @@ namespace DeviceBridge.Controllers
         /// <remarks>
         /// Example request:
         ///
-        ///     PATCH /devices/{deviceId}/properties/reported
+        ///     PATCH /devices/{deviceId}/twin/properties/reported
         ///     {
         ///         "patch": {
         ///             "fanSpeed": 35,

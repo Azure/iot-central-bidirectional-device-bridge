@@ -452,7 +452,7 @@
           "Twin"
         ],
         "summary": "Updates reported properties in the device twin.",
-        "description": "Example request:\r\n            \r\n    PATCH /devices/{deviceId}/properties/reported\r\n    {\r\n        \"patch\": {\r\n            \"fanSpeed\": 35,\r\n            \"serial\": \"ABC\"\r\n        }\r\n    }\r\n.",
+        "description": "Example request:\r\n            \r\n    PATCH /devices/{deviceId}/twin/properties/reported\r\n    {\r\n        \"patch\": {\r\n            \"fanSpeed\": 35,\r\n            \"serial\": \"ABC\"\r\n        }\r\n    }\r\n.",
         "operationId": "UpdateReportedProperties",
         "consumes": [
           "application/json",
