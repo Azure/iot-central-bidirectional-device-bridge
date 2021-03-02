@@ -41,19 +41,17 @@ namespace FunctionApp1
             {
                 if (cache.ContainsKey(deviceId))
                 {
-                    cache.TryRemove(deviceId, _);
-                    if (!cache.TryRemove(deviceId, _))
+                    string value;
+                    if (!cache.TryRemove(deviceId, out value))
                     {
                         return new ConflictObjectResult("Conflict when adding to dictionary");
                     }
                 }
-                if(!cache.TryAdd(deviceId, requestBody))
-                {
-                    return new ConflictObjectResult("Conflict when adding to dictionary");
-                }
+                cache.AddOrUpdate(deviceId, requestBody, (k, v) => requestBody);
             } else if(req.Method == "DELETE")
             {
-                if(!cache.TryRemove(deviceId, _))
+                string value;
+                if (!cache.TryRemove(deviceId, out value))
                 {
                     return new ConflictObjectResult("Conflict when deleting from dictionary");
                 }
