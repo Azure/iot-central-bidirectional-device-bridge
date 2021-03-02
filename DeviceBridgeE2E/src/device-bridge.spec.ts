@@ -75,7 +75,7 @@ test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
-    await sleep(3000);
+    await sleep(5000);
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
     t.is(response.body.callbackUrl, callbackUrl)
@@ -93,7 +93,7 @@ test.serial('Test C2D callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
-    await sleep(3000);
+    await sleep(5000);
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
     t.is(response.body.callbackUrl, callbackUrl)
@@ -146,7 +146,7 @@ test.serial('Test device desired property update callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
     await t.context.ctx.deviceBridgAPI.createDesiredPropertySubscription(t, t.context.device.id, callbackUrl)
-    await sleep(3000);
+    await sleep(5000);
 
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getDesiredPropertySubscription(t, t.context.device.id);
