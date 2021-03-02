@@ -206,6 +206,7 @@ test.serial('Test reported properties and twin', async t => {
     }
 
     await t.context.ctx.deviceBridgAPI.sendReportedProperty(t, t.context.device.id, reportedPropertiesBody)
+    await sleep(3000);
     var attempts = 5;
     var propertiesResult = await t.context.ctx.publicAPI.getProperties(t, t.context.device.id);
     // Multiple attempts as it may take time for property changes to come through
