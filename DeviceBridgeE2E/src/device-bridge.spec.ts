@@ -172,7 +172,7 @@ test.serial('Test device desired property update callback', async t => {
 });
 
 test.serial('Test device to cloud messaging', async t => {
-    const temperatureValue = Math.random() * 1000;
+    const temperatureValue = Math.round(Math.random() * 1000);
     await t.context.ctx.deviceBridgAPI.sendTelemetry(t, t.context.device.id, {
         data: { temperature: temperatureValue },
     });
