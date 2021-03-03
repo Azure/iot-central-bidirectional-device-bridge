@@ -311,10 +311,3 @@ test.serial('Test auth', async t => {
         });
     }
 });
-
-test.serial('Test restart', async t => {
-    var result = await t.context.ctx.deviceBridgAPI.getHealth(t);
-    t.is("Healthy", result);
-});
-
-
