@@ -91,7 +91,6 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         callbackUrl: string
     ): Promise<any> {
-        t.log()
         await got.put<any>(this.getUrlFuncs()["cmd"](deviceId), {
             json: {callbackUrl},
             responseType: 'json',
@@ -107,7 +106,6 @@ export default class DeviceBridgeAPI {
         deviceId: string,
         callbackUrl: string
     ): Promise<any> {
-        t.log()
         await got.put<any>(this.getUrlFuncs()["desiredProperties"](deviceId), {
             json: {callbackUrl},
             responseType: 'json',
@@ -188,7 +186,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got.delete<any>(this.getUrlFuncs()["c2d"](deviceId), {
+        return await got.delete<any>(this.getUrlFuncs()["C2DMessage"](deviceId), {
             headers: await this._headers(),
             hooks: {
                 afterResponse: [this._logger(t, 'DELETE')],
