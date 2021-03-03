@@ -162,7 +162,7 @@ Below is an example of the response returned by the service when fetching the la
 To update reported properties in a device twin, include a patch in the request body, as the example below:
 
 ```json
-PATCH /devices/{deviceId}/properties/reported
+PATCH /devices/{deviceId}/twin/properties/reported
 {
     "patch": {
         "fanSpeed": 35,
