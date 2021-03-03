@@ -166,8 +166,6 @@ export default class PublicAPI {
                 this._url(`/devices/${id}/commands/${commandName}`),
                 {
                     json: {
-                        connectionTimeout: 10,
-                        responseTimeout: 10,
                         request: {
                         },
                     },

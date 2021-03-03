@@ -30,7 +30,8 @@
                 "displayName": {
                     "en": "c2d"
                 },
-                "name": "c2d"
+                "name": "c2d",
+                "durable": true
             },
             {
                 "@id": "dtmi:test:Basic8:humidity;1",

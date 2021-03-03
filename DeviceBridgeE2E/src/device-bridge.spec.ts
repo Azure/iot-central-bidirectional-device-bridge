@@ -90,25 +90,24 @@ test.serial('Test device command callback', async t => {
     await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
 });
 
-// Commented until we find a solution for queued commands in device template
-// test.serial('Test C2D callback', async t => {
-//     // Create subscription to Azure Function
-//     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
-//     await t.context.ctx.deviceBridgAPI.createC2DSubscription(t, t.context.device.id, callbackUrl)
-//     await sleep(5000);
-//     // Ensure get works
-//     var response = await t.context.ctx.deviceBridgAPI.getC2DSubscription(t, t.context.device.id);
-//     t.is(response.body.callbackUrl, callbackUrl)
-//     t.is(response.body.status, "Running");
-//     await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "c2d");
-//     var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
-//     var cmdInvocationValueBody = JSON.parse(cmdInvocationValue.body);
-//     t.is("c2d", cmdInvocationValueBody.methodName);
-//     t.is("DirectMethodInvocation", cmdInvocationValueBody.eventType);
-//     t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
-//     await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
-//     await t.context.ctx.deviceBridgAPI.deleteC2DSubscription(t, t.context.device.id);
-// });
+test.serial('Test C2D callback', async t => {
+    // Create subscription to Azure Function
+    const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
+    await t.context.ctx.deviceBridgAPI.createC2DSubscription(t, t.context.device.id, callbackUrl)
+    await sleep(5000);
+    // Ensure get works
+    var response = await t.context.ctx.deviceBridgAPI.getC2DSubscription(t, t.context.device.id);
+    t.is(response.body.callbackUrl, callbackUrl)
+    t.is(response.body.status, "Running");
+    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "c2d");
+    var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var cmdInvocationValueBody = JSON.parse((cmdInvocationValue.body as string).replace("@", "{}"));
+    t.is("c2d", cmdInvocationValueBody.properties["method-name"]);
+    t.is("C2DMessage", cmdInvocationValueBody.eventType);
+    t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
+    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
+    await t.context.ctx.deviceBridgAPI.deleteC2DSubscription(t, t.context.device.id);
+});
 
 test.serial('Test device connection status callback and get', async t => {
     // Get connection status
@@ -313,5 +312,9 @@ test.serial('Test auth', async t => {
     }
 });
 
+test.serial('Test restart', async t => {
+    var result = await t.context.ctx.deviceBridgAPI.getHealth(t);
+    t.is("Healthy", result);
+});
 
 
