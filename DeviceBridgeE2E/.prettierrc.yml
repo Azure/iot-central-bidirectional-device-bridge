@@ -1,0 +1,9 @@
+arrowParens: avoid
+proseWrap: always
+singleQuote: true
+tabWidth: 4
+overrides:
+  - files: '*.yml'
+    options:
+      tabWidth: 2
+      printWidth: 120 # https://github.com/prettier/prettier/issues/5599

@@ -1,0 +1,13 @@
+# Ignore everything by default
+*
+
+# Enable for top-level files and our source code
+!/*
+!/src/**/*
+!/docs/**/*
+!/data/**/*
+
+# Reignore the npm files because it will format
+# them regardless of what we choose to do
+package.json
+package-lock.json
