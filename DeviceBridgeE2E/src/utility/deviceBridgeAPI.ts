@@ -62,7 +62,7 @@ export default class DeviceBridgeAPI {
     }
 
     async getHealth(t: ExecutionContext): Promise<any> {
-        const { body } = await got<any>(this.getUrlFuncs()["health"](), {
+        const { body } = await got<any>(this.getHealthUrl(), {
             headers: await this._headers(),
             hooks: {
                 afterResponse: [this._logger(t, 'GET')],
@@ -184,6 +184,18 @@ export default class DeviceBridgeAPI {
         });
     }
 
+    async deleteC2DSubscription(
+        t: ExecutionContext,
+        deviceId: string
+    ): Promise<any> {
+        return await got.delete<any>(this.getUrlFuncs()["c2d"](deviceId), {
+            headers: await this._headers(),
+            hooks: {
+                afterResponse: [this._logger(t, 'DELETE')],
+            },
+        });
+    }
+
     async deleteDesiredPropertySubscription(
         t: ExecutionContext,
         deviceId: string
@@ -255,7 +267,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got.delete<any>(this.getUrlFuncs()["echo"](deviceId), {
+        return await got.delete<any>(this.getEchoUrl(deviceId), {
             responseType: 'json',
             headers: await this._headers(),
             hooks: {
@@ -268,6 +280,10 @@ export default class DeviceBridgeAPI {
         return `${this._azureFunctionUrl}&deviceId=${deviceId}`;
     }
 
+    private getHealthUrl(): string {
+        return `https://${this._bridgeURL}/health`;
+    }
+
     getUrlFuncs():object {
         return {
             registration: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/registration`,
@@ -277,8 +293,7 @@ export default class DeviceBridgeAPI {
             desiredProperties: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/desired/sub`,
             connectionStatus: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/connectionstatus`,
             reportedProperties: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin/properties/reported`,
-            twin: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin`,
-            health: (empty = "") => `https://${this._bridgeURL}/health`
+            twin: (deviceId) => `https://${this._bridgeURL}/devices/${deviceId}/twin`
         };
     }
 

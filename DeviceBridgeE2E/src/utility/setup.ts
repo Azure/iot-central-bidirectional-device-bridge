@@ -13,6 +13,7 @@ export interface TestContext {
     deviceBridgAPI: DeviceBridgeAPI;
     callbackUrl: string,
     apiToken: string,
+    deviceBridgeKey: string,
 }
 
 export async function setup(t: ExecutionContext): Promise<TestContext> {
@@ -49,6 +50,7 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
         publicAPI,
         deviceBridgAPI,
         callbackUrl,
-        apiToken: API_TOKEN
+        apiToken: API_TOKEN,
+        deviceBridgeKey: DEVICE_BRIDGE_KEY
     };
 }
