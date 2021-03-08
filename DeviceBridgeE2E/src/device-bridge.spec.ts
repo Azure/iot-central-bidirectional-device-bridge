@@ -336,13 +336,6 @@ test.serial('Test restart', async t => {
         }
     );
 
-    await sleep(1000);
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
-    var invocationValueBody = JSON.parse(invocationValue.body);
-    t.is(invocationValueBody.status, "Disabled");
-    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
-    t.is(invocationValueBody.deviceId, t.context.device.id);
-
     await sleep(30000);
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var invocationValueBody = JSON.parse(invocationValue.body);
