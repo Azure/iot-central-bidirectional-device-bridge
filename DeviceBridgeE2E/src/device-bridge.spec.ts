@@ -5,7 +5,6 @@ import { setup, TestContext } from './utility/setup';
 import * as util from 'util';
 import * as fs from 'fs';
 import DeviceClient from './utility/device';
-import { assert } from 'console';
 import { sleep, makeString } from './utility/helpers'
 import got from 'got/dist/source';
 
@@ -310,4 +309,56 @@ test.serial('Test auth', async t => {
             t.assert((reason.message as string).indexOf("401") > 0 || (reason.message as string).indexOf("405") > 0, reason.message)
         });
     }
+});
+
+test.serial('Test restart', async t => {
+    // Create subscription to Azure Function
+    const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
+    await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(t, t.context.device.id, callbackUrl)
+    await sleep(3000);
+    // Ensure get works
+    var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(t, t.context.device.id);
+    t.is(callbackUrl, response.body.callbackUrl)
+
+    // Ensure connection created event when a sub created
+    await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
+    await sleep(3000);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValueBody = JSON.parse(invocationValue.body);
+    t.is(invocationValueBody.status, "Connected");
+    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.deviceId, t.context.device.id);
+
+    var oldTimeStamp = invocationValueBody.deviceReceivedAt;
+
+    // Ensure connection restarted when container restarts
+    await got.post<{ [name: string]: string }>(
+        t.context.ctx.restartApiUrl,
+        {
+            json: {
+                request: {
+                },
+            },
+            responseType: 'json',
+            headers: {Authorization:"Bearer " + t.context.ctx.restartBearerToken},
+        }
+    );
+
+    await sleep(1000);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValueBody = JSON.parse(invocationValue.body);
+    t.is(invocationValueBody.status, "Disabled");
+    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.deviceId, t.context.device.id);
+    // Ensure there is a new timestamp, telling us the sub has been updated
+    t.not(invocationValueBody.deviceReceivedAt, oldTimeStamp);
+
+    await sleep(30000);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValueBody = JSON.parse(invocationValue.body);
+    t.is(invocationValueBody.status, "Connected");
+    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.deviceId, t.context.device.id);
+    // Ensure there is a new timestamp, telling us the sub has been updated
+    t.not(invocationValueBody.deviceReceivedAt, oldTimeStamp);
 });
