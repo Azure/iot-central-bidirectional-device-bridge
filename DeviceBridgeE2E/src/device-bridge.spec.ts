@@ -323,14 +323,6 @@ test.serial('Test restart', async t => {
     // Ensure connection created event when a sub created
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
     await sleep(3000);
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
-    var invocationValueBody = JSON.parse(invocationValue.body);
-    t.is(invocationValueBody.status, "Connected");
-    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
-    t.is(invocationValueBody.deviceId, t.context.device.id);
-
-    var oldTimeStamp = invocationValueBody.deviceReceivedAt;
-
     // Ensure connection restarted when container restarts
     await got.post<{ [name: string]: string }>(
         t.context.ctx.restartApiUrl,
@@ -350,8 +342,6 @@ test.serial('Test restart', async t => {
     t.is(invocationValueBody.status, "Disabled");
     t.is(invocationValueBody.eventType, "ConnectionStatusChange");
     t.is(invocationValueBody.deviceId, t.context.device.id);
-    // Ensure there is a new timestamp, telling us the sub has been updated
-    t.not(invocationValueBody.deviceReceivedAt, oldTimeStamp);
 
     await sleep(30000);
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
@@ -359,6 +349,4 @@ test.serial('Test restart', async t => {
     t.is(invocationValueBody.status, "Connected");
     t.is(invocationValueBody.eventType, "ConnectionStatusChange");
     t.is(invocationValueBody.deviceId, t.context.device.id);
-    // Ensure there is a new timestamp, telling us the sub has been updated
-    t.not(invocationValueBody.deviceReceivedAt, oldTimeStamp);
 });
