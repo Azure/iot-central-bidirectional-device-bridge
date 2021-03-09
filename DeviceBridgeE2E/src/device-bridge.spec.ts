@@ -66,6 +66,11 @@ test.before(async t => {
     );
 });
 
+test.afterEach(async () => {
+    // Allow for all subs to finish deleting ect 
+    await sleep(3000);
+})
+
 test.after(async t => {
     await t.context.ctx.publicAPI.deleteDevice(t, t.context.device.id);
 });
@@ -319,11 +324,9 @@ test.serial('Test restart', async t => {
     // Ensure get works
     var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(t, t.context.device.id);
     t.is(callbackUrl, response.body.callbackUrl)
-
-    // Ensure connection created event when a sub created
     await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
     await sleep(3000);
-    // Ensure connection restarted when container restarts
+    // Restart container
     await got.post<{ [name: string]: string }>(
         t.context.ctx.restartApiUrl,
         {
@@ -336,7 +339,8 @@ test.serial('Test restart', async t => {
         }
     );
 
-    await sleep(30000);
+    await sleep(60000);
+    // Ensure that we get a connection status change event
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var invocationValueBody = JSON.parse(invocationValue.body);
     t.is(invocationValueBody.status, "Connected");
