@@ -5,7 +5,7 @@ import { setup, TestContext } from './utility/setup';
 import * as util from 'util';
 import * as fs from 'fs';
 import DeviceClient from './utility/device';
-import { sleep, makeString } from './utility/helpers'
+import { sleep, makeString } from './utility/helpers';
 import got from 'got/dist/source';
 
 const test = anyTest as TestInterface<{
@@ -67,9 +67,9 @@ test.before(async t => {
 });
 
 test.afterEach(async () => {
-    // Allow for all subs to finish deleting ect 
+    // Allow for all subs to finish deleting ect
     await sleep(3000);
-})
+});
 
 test.after(async t => {
     await t.context.ctx.publicAPI.deleteDevice(t, t.context.device.id);
@@ -78,73 +78,127 @@ test.after(async t => {
 test.serial('Test device command callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
-    await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl)
+    await t.context.ctx.deviceBridgAPI.createCMDSubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(5000);
     // Ensure get works
-    var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(t, t.context.device.id);
-    t.is(response.body.callbackUrl, callbackUrl)
-    t.is(response.body.status, "Running");
-    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "cmd");
-    var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var response = await t.context.ctx.deviceBridgAPI.getCMDSubscription(
+        t,
+        t.context.device.id
+    );
+    t.is(response.body.callbackUrl, callbackUrl);
+    t.is(response.body.status, 'Running');
+    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, 'cmd');
+    var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+        t,
+        t.context.device.id
+    );
     var cmdInvocationValueBody = JSON.parse(cmdInvocationValue.body);
-    t.is("cmd", cmdInvocationValueBody.methodName);
-    t.is("DirectMethodInvocation", cmdInvocationValueBody.eventType);
+    t.is('cmd', cmdInvocationValueBody.methodName);
+    t.is('DirectMethodInvocation', cmdInvocationValueBody.eventType);
     t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
     await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
-    await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
+    await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(
+        t,
+        t.context.device.id
+    );
 });
 
 test.serial('Test C2D callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
-    await t.context.ctx.deviceBridgAPI.createC2DSubscription(t, t.context.device.id, callbackUrl)
+    await t.context.ctx.deviceBridgAPI.createC2DSubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(5000);
     // Ensure get works
-    var response = await t.context.ctx.deviceBridgAPI.getC2DSubscription(t, t.context.device.id);
-    t.is(response.body.callbackUrl, callbackUrl)
-    t.is(response.body.status, "Running");
-    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, "c2d");
-    var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
-    var cmdInvocationValueBody = JSON.parse((cmdInvocationValue.body as string).replace("@", "{}"));
-    t.is("c2d", cmdInvocationValueBody.properties["method-name"]);
-    t.is("C2DMessage", cmdInvocationValueBody.eventType);
+    var response = await t.context.ctx.deviceBridgAPI.getC2DSubscription(
+        t,
+        t.context.device.id
+    );
+    t.is(response.body.callbackUrl, callbackUrl);
+    t.is(response.body.status, 'Running');
+    await t.context.ctx.publicAPI.executeCommand(t, t.context.device.id, 'c2d');
+    var cmdInvocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+        t,
+        t.context.device.id
+    );
+    var cmdInvocationValueBody = JSON.parse(
+        (cmdInvocationValue.body as string).replace('@', '{}')
+    );
+    t.is('c2d', cmdInvocationValueBody.properties['method-name']);
+    t.is('C2DMessage', cmdInvocationValueBody.eventType);
     t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
     await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
-    await t.context.ctx.deviceBridgAPI.deleteC2DSubscription(t, t.context.device.id);
+    await t.context.ctx.deviceBridgAPI.deleteC2DSubscription(
+        t,
+        t.context.device.id
+    );
 });
 
 test.serial('Test device connection status callback and get', async t => {
     // Get connection status
-    var initialConnectionStatus = await t.context.ctx.deviceBridgAPI.getConnectionStatus(t, t.context.device.id);
-    t.is("Disabled", initialConnectionStatus.body.status);
+    var initialConnectionStatus = await t.context.ctx.deviceBridgAPI.getConnectionStatus(
+        t,
+        t.context.device.id
+    );
+    t.is('Disabled', initialConnectionStatus.body.status);
 
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
-    await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(t, t.context.device.id, callbackUrl)
+    await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(3000);
     // Ensure get works
-    var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(t, t.context.device.id);
-    t.is(callbackUrl, response.body.callbackUrl)
+    var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(
+        t,
+        t.context.device.id
+    );
+    t.is(callbackUrl, response.body.callbackUrl);
 
     // Ensure connection created event when a sub created
-    await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
+    await t.context.ctx.deviceBridgAPI.createCMDSubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(3000);
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+        t,
+        t.context.device.id
+    );
     var invocationValueBody = JSON.parse(invocationValue.body);
-    t.is(invocationValueBody.status, "Connected");
-    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.status, 'Connected');
+    t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
     t.is(invocationValueBody.deviceId, t.context.device.id);
 
-    var connectionStatus = await t.context.ctx.deviceBridgAPI.getConnectionStatus(t, t.context.device.id);
-    t.is("Connected", connectionStatus.body.status);
+    var connectionStatus = await t.context.ctx.deviceBridgAPI.getConnectionStatus(
+        t,
+        t.context.device.id
+    );
+    t.is('Connected', connectionStatus.body.status);
 
     // Ensure connection deleted event when a sub deleted
-    await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(t, t.context.device.id);
+    await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(
+        t,
+        t.context.device.id
+    );
     await sleep(2000);
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+        t,
+        t.context.device.id
+    );
     var invocationValueBody = JSON.parse(invocationValue.body);
-    t.is(invocationValueBody.status, "Disabled");
-    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.status, 'Disabled');
+    t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
     t.is(invocationValueBody.deviceId, t.context.device.id);
     await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
 });
@@ -152,29 +206,47 @@ test.serial('Test device connection status callback and get', async t => {
 test.serial('Test device desired property update callback', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
-    await t.context.ctx.deviceBridgAPI.createDesiredPropertySubscription(t, t.context.device.id, callbackUrl)
+    await t.context.ctx.deviceBridgAPI.createDesiredPropertySubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(5000);
 
     // Ensure get works
-    var response = await t.context.ctx.deviceBridgAPI.getDesiredPropertySubscription(t, t.context.device.id);
-    t.is(response.body.callbackUrl, callbackUrl)
-    t.is(response.body.status, "Running");
+    var response = await t.context.ctx.deviceBridgAPI.getDesiredPropertySubscription(
+        t,
+        t.context.device.id
+    );
+    t.is(response.body.callbackUrl, callbackUrl);
+    t.is(response.body.status, 'Running');
     var propTestValue = makeString(10);
-    await t.context.ctx.publicAPI.setProperties(t, t.context.device.id, {rwProp: propTestValue});
+    await t.context.ctx.publicAPI.setProperties(t, t.context.device.id, {
+        rwProp: propTestValue,
+    });
     await sleep(3000);
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+        t,
+        t.context.device.id
+    );
     var invocationValueBody = JSON.parse(invocationValue.body);
     t.is(invocationValueBody.desiredProperties.rwProp, propTestValue);
-    t.is(invocationValueBody.eventType, "DesiredPropertyUpdate");
+    t.is(invocationValueBody.eventType, 'DesiredPropertyUpdate');
     t.is(invocationValueBody.deviceId, t.context.device.id);
 
     // Ensure connection deleted event when a sub deleted
-    await t.context.ctx.deviceBridgAPI.deleteDesiredPropertySubscription(t, t.context.device.id);
+    await t.context.ctx.deviceBridgAPI.deleteDesiredPropertySubscription(
+        t,
+        t.context.device.id
+    );
     await sleep(2000);
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
+    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+        t,
+        t.context.device.id
+    );
     var invocationValueBody = JSON.parse(invocationValue.body);
-    t.is(invocationValueBody.status, "Disabled");
-    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
+    t.is(invocationValueBody.status, 'Disabled');
+    t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
     t.is(invocationValueBody.deviceId, t.context.device.id);
     await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
 });
@@ -209,141 +281,263 @@ test.serial('Test device to cloud messaging', async t => {
 
 test.serial('Test reported properties and twin', async t => {
     var reportedPropertiesBody = {
-        "patch": {
-            "rwProp": makeString(10),
-        }
-    }
+        patch: {
+            rwProp: makeString(10),
+        },
+    };
 
-    await t.context.ctx.deviceBridgAPI.sendReportedProperty(t, t.context.device.id, reportedPropertiesBody)
+    await t.context.ctx.deviceBridgAPI.sendReportedProperty(
+        t,
+        t.context.device.id,
+        reportedPropertiesBody
+    );
     await sleep(3000);
     var attempts = 5;
-    var propertiesResult = await t.context.ctx.publicAPI.getProperties(t, t.context.device.id);
+    var propertiesResult = await t.context.ctx.publicAPI.getProperties(
+        t,
+        t.context.device.id
+    );
     // Multiple attempts as it may take time for property changes to come through
-    for(var i = 0; i < attempts; i++){
+    for (var i = 0; i < attempts; i++) {
         if (propertiesResult != {} && propertiesResult.rwProp != undefined) {
             break;
         }
-        propertiesResult = await t.context.ctx.publicAPI.getProperties(t, t.context.device.id);
+        propertiesResult = await t.context.ctx.publicAPI.getProperties(
+            t,
+            t.context.device.id
+        );
     }
 
     t.is(String(propertiesResult.rwProp), reportedPropertiesBody.patch.rwProp);
 
     // Assert that twin reports the property
-    var twinResult = await t.context.ctx.deviceBridgAPI.getTwin(t, t.context.device.id)
-    t.is(reportedPropertiesBody.patch.rwProp, twinResult.twin.properties.reported.rwProp)
+    var twinResult = await t.context.ctx.deviceBridgAPI.getTwin(
+        t,
+        t.context.device.id
+    );
+    t.is(
+        reportedPropertiesBody.patch.rwProp,
+        twinResult.twin.properties.reported.rwProp
+    );
 });
 
 test.serial('Test device provisoning endpoint', async t => {
-    var result = await t.context.ctx.deviceBridgAPI.registerDevice(t, "registrationDevice", {modelId: t.context.template.id})
-    t.is(200, result.statusCode)
+    var result = await t.context.ctx.deviceBridgAPI.registerDevice(
+        t,
+        'registrationDevice',
+        { modelId: t.context.template.id }
+    );
+    t.is(200, result.statusCode);
 });
 
 test.serial('Test health endpoint', async t => {
     var result = await t.context.ctx.deviceBridgAPI.getHealth(t);
-    t.is("Healthy", result)
+    t.is('Healthy', result);
 });
 
 test.serial('Test auth', async t => {
     var urls = await t.context.ctx.deviceBridgAPI.getUrlFuncs();
     const headers = {
         'x-api-key': t.context.ctx.deviceBridgeKey,
-        'content-type': "application/json"
+        'content-type': 'application/json',
     };
 
-    for(const [_, url] of Object.entries(urls)){
+    for (const [_, url] of Object.entries(urls)) {
         // Test get, auth
-        await got<any>(url(), { headers }).then(async (result) => {
-            t.assert(result.statusCode == 200, `Status code was ${result.statusCode} instead of 200 for url: ${url()}`);
-        }).catch((reason: any) => {
-            // Assert has a 404 or 405 if failed
-            t.assert((reason.message as string).indexOf("404") > 0 || (reason.message as string).indexOf("405") > 0, reason.message)
-        });
+        await got<any>(url(), { headers })
+            .then(async result => {
+                t.assert(
+                    result.statusCode == 200,
+                    `Status code was ${
+                        result.statusCode
+                    } instead of 200 for url: ${url()}`
+                );
+            })
+            .catch((reason: any) => {
+                // Assert has a 404 or 405 if failed
+                t.assert(
+                    (reason.message as string).indexOf('404') > 0 ||
+                        (reason.message as string).indexOf('405') > 0,
+                    reason.message
+                );
+            });
         // Test get, no auth
-        await got<any>(url()).then(async (result) => {
-            t.fail();
-        }).catch((reason: any) => {
-            // Assert has a 401 or 405 if failed
-            t.assert((reason.message as string).indexOf("401") > 0 || (reason.message as string).indexOf("405") > 0, reason.message)
-        });
+        await got<any>(url())
+            .then(async result => {
+                t.fail();
+            })
+            .catch((reason: any) => {
+                // Assert has a 401 or 405 if failed
+                t.assert(
+                    (reason.message as string).indexOf('401') > 0 ||
+                        (reason.message as string).indexOf('405') > 0,
+                    reason.message
+                );
+            });
 
         // Test post, auth
-        await got.post<any>(url(), { headers }).then(async (result) => {
-            t.assert(result.statusCode == 200, `Status code was ${result.statusCode} instead of 200 for url: ${url()}`);
-        }).catch((reason: any) => {
-            // Assert has a 400, 404 or 405 if failed
-            // 400 is okay as auth comes before 400 is triggered, we are just testing auth
-            t.assert((reason.message as string).indexOf("404") > 0 || (reason.message as string).indexOf("405") > 0 || (reason.message as string).indexOf("400") > 0, reason.message)
-        });
+        await got
+            .post<any>(url(), { headers })
+            .then(async result => {
+                t.assert(
+                    result.statusCode == 200,
+                    `Status code was ${
+                        result.statusCode
+                    } instead of 200 for url: ${url()}`
+                );
+            })
+            .catch((reason: any) => {
+                // Assert has a 400, 404 or 405 if failed
+                // 400 is okay as auth comes before 400 is triggered, we are just testing auth
+                t.assert(
+                    (reason.message as string).indexOf('404') > 0 ||
+                        (reason.message as string).indexOf('405') > 0 ||
+                        (reason.message as string).indexOf('400') > 0,
+                    reason.message
+                );
+            });
         // Test post, no auth
-        await got.post<any>(url()).then(async (result) => {
-            t.fail();
-        }).catch((reason: any) => {
-            // Assert has a 401 or 405 if failed
-            t.assert((reason.message as string).indexOf("401") > 0 || (reason.message as string).indexOf("405") > 0, reason.message)
-        });
+        await got
+            .post<any>(url())
+            .then(async result => {
+                t.fail();
+            })
+            .catch((reason: any) => {
+                // Assert has a 401 or 405 if failed
+                t.assert(
+                    (reason.message as string).indexOf('401') > 0 ||
+                        (reason.message as string).indexOf('405') > 0,
+                    reason.message
+                );
+            });
 
         // Test put, auth
-        await got.put<any>(url(), { headers }).then(async (result) => {
-            t.assert(result.statusCode == 200, `Status code was ${result.statusCode} instead of 200 for url: ${url()}`);
-        }).catch((reason: any) => {
-            // Assert has a 400, 404 or 405 if failed
-            // 400 is okay as auth comes before 400 is triggered, we are just testing auth
-            t.assert((reason.message as string).indexOf("404") > 0 || (reason.message as string).indexOf("405") > 0 || (reason.message as string).indexOf("400") > 0, reason.message)
-        });
+        await got
+            .put<any>(url(), { headers })
+            .then(async result => {
+                t.assert(
+                    result.statusCode == 200,
+                    `Status code was ${
+                        result.statusCode
+                    } instead of 200 for url: ${url()}`
+                );
+            })
+            .catch((reason: any) => {
+                // Assert has a 400, 404 or 405 if failed
+                // 400 is okay as auth comes before 400 is triggered, we are just testing auth
+                t.assert(
+                    (reason.message as string).indexOf('404') > 0 ||
+                        (reason.message as string).indexOf('405') > 0 ||
+                        (reason.message as string).indexOf('400') > 0,
+                    reason.message
+                );
+            });
         // Test put, no auth
-        await got.put<any>(url()).then(async (result) => {
-            t.fail();
-        }).catch((reason: any) => {
-            // Assert has a 401 or 405 if failed
-            t.assert((reason.message as string).indexOf("401") > 0 || (reason.message as string).indexOf("405") > 0, reason.message)
-        });
+        await got
+            .put<any>(url())
+            .then(async result => {
+                t.fail();
+            })
+            .catch((reason: any) => {
+                // Assert has a 401 or 405 if failed
+                t.assert(
+                    (reason.message as string).indexOf('401') > 0 ||
+                        (reason.message as string).indexOf('405') > 0,
+                    reason.message
+                );
+            });
 
         // Test delete, auth
-        await got.delete<any>(url(), { headers }).then(async (result) => {
-            t.assert(result.statusCode == 200 || result.statusCode == 204, `Status code was ${result.statusCode} instead of 200 for url: ${url()}`);
-        }).catch((reason: any) => {
-            // Assert has a 400, 404 or 405 if failed
-            // 400 is okay as auth comes before 400 is triggered, we are just testing auth
-            t.assert((reason.message as string).indexOf("404") > 0 || (reason.message as string).indexOf("405") > 0 || (reason.message as string).indexOf("400") > 0, reason.message)
-        });
+        await got
+            .delete<any>(url(), { headers })
+            .then(async result => {
+                t.assert(
+                    result.statusCode == 200 || result.statusCode == 204,
+                    `Status code was ${
+                        result.statusCode
+                    } instead of 200 for url: ${url()}`
+                );
+            })
+            .catch((reason: any) => {
+                // Assert has a 400, 404 or 405 if failed
+                // 400 is okay as auth comes before 400 is triggered, we are just testing auth
+                t.assert(
+                    (reason.message as string).indexOf('404') > 0 ||
+                        (reason.message as string).indexOf('405') > 0 ||
+                        (reason.message as string).indexOf('400') > 0,
+                    reason.message
+                );
+            });
         // Test delete, no auth
-        await got.delete<any>(url()).then(async (result) => {
-            t.fail();
-        }).catch((reason: any) => {
-            // Assert has a 401 or 405 if failed
-            t.assert((reason.message as string).indexOf("401") > 0 || (reason.message as string).indexOf("405") > 0, reason.message)
-        });
+        await got
+            .delete<any>(url())
+            .then(async result => {
+                t.fail();
+            })
+            .catch((reason: any) => {
+                // Assert has a 401 or 405 if failed
+                t.assert(
+                    (reason.message as string).indexOf('401') > 0 ||
+                        (reason.message as string).indexOf('405') > 0,
+                    reason.message
+                );
+            });
     }
 });
 
 test.serial('Test restart', async t => {
     // Create subscription to Azure Function
     const callbackUrl = `${t.context.ctx.callbackUrl}&deviceId=${t.context.device.id}`;
-    await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(t, t.context.device.id, callbackUrl)
+    await t.context.ctx.deviceBridgAPI.createConnectionStatusSubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(3000);
     // Ensure get works
-    var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(t, t.context.device.id);
-    t.is(callbackUrl, response.body.callbackUrl)
-    await t.context.ctx.deviceBridgAPI.createCMDSubscription(t, t.context.device.id, callbackUrl);
+    var response = await t.context.ctx.deviceBridgAPI.getConnectionStatusSubscription(
+        t,
+        t.context.device.id
+    );
+    t.is(callbackUrl, response.body.callbackUrl);
+    await t.context.ctx.deviceBridgAPI.createCMDSubscription(
+        t,
+        t.context.device.id,
+        callbackUrl
+    );
     await sleep(3000);
     // Restart container
-    await got.post<{ [name: string]: string }>(
-        t.context.ctx.restartApiUrl,
-        {
-            json: {
-                request: {
-                },
-            },
-            responseType: 'json',
-            headers: {Authorization:"Bearer " + t.context.ctx.restartBearerToken},
-        }
-    );
+    await got.post<{ [name: string]: string }>(t.context.ctx.restartApiUrl, {
+        json: {
+            request: {},
+        },
+        responseType: 'json',
+        headers: {
+            Authorization: 'Bearer ' + t.context.ctx.restartBearerToken,
+        },
+    });
 
-    await sleep(60000);
-    // Ensure that we get a connection status change event
-    var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
-    var invocationValueBody = JSON.parse(invocationValue.body);
-    t.is(invocationValueBody.status, "Connected");
-    t.is(invocationValueBody.eventType, "ConnectionStatusChange");
-    t.is(invocationValueBody.deviceId, t.context.device.id);
+    var attempts = 24;
+    for (var i = 0; i < attempts; i++) {
+        var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
+            t,
+            t.context.device.id
+        );
+        if (invocationValue.Body == undefined) {
+            continue;
+        }
+        var invocationValueBody = JSON.parse(invocationValue.body);
+        t.is(invocationValueBody.status, 'Connected');
+        t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
+        t.is(invocationValueBody.deviceId, t.context.device.id);
+        t.context.ctx.deviceBridgAPI.deleteCMDSubscription(
+            t,
+            t.context.device.id
+        );
+        t.context.ctx.deviceBridgAPI.deleteConnectionStatusSubscription(
+            t,
+            t.context.device.id
+        );
+        break;
+    }
 });
