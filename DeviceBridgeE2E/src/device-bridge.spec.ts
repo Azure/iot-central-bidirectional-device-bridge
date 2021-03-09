@@ -503,6 +503,8 @@ test.serial('Test restart', async t => {
         callbackUrl
     );
     await sleep(3000);
+    // Delete echo for conection status
+    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
     // Restart container
     await got.post<{ [name: string]: string }>(t.context.ctx.restartApiUrl, {
         json: {
