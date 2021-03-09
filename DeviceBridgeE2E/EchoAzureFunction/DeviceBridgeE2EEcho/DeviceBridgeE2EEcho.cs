@@ -51,7 +51,7 @@ namespace FunctionApp1
             } else if(req.Method == "DELETE")
             {
                 string value;
-                if (!cache.TryRemove(deviceId, out value))
+                if (cache.ContainsKey(deviceId) && !cache.TryRemove(deviceId, out value))
                 {
                     return new ConflictObjectResult("Conflict when deleting from dictionary");
                 }
