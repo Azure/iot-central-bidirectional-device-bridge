@@ -66,7 +66,9 @@ test.before(async t => {
     );
 });
 
-test.afterEach(async () => {
+test.afterEach(async t => {
+    // Make sure there are no lingering echos
+    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
     // Allow for all subs to finish deleting ect
     await sleep(3000);
 });
@@ -100,7 +102,6 @@ test.serial('Test device command callback', async t => {
     t.is('cmd', cmdInvocationValueBody.methodName);
     t.is('DirectMethodInvocation', cmdInvocationValueBody.eventType);
     t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
-    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
     await t.context.ctx.deviceBridgAPI.deleteCMDSubscription(
         t,
         t.context.device.id
@@ -134,7 +135,6 @@ test.serial('Test C2D callback', async t => {
     t.is('c2d', cmdInvocationValueBody.properties['method-name']);
     t.is('C2DMessage', cmdInvocationValueBody.eventType);
     t.is(t.context.device.id, cmdInvocationValueBody.deviceId);
-    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
     await t.context.ctx.deviceBridgAPI.deleteC2DSubscription(
         t,
         t.context.device.id
@@ -200,7 +200,6 @@ test.serial('Test device connection status callback and get', async t => {
     t.is(invocationValueBody.status, 'Disabled');
     t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
     t.is(invocationValueBody.deviceId, t.context.device.id);
-    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
 });
 
 test.serial('Test device desired property update callback', async t => {
@@ -248,7 +247,6 @@ test.serial('Test device desired property update callback', async t => {
     t.is(invocationValueBody.status, 'Disabled');
     t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
     t.is(invocationValueBody.deviceId, t.context.device.id);
-    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
 });
 
 test.serial('Test device to cloud messaging', async t => {
@@ -276,7 +274,6 @@ test.serial('Test device to cloud messaging', async t => {
         );
     }
     t.is(String(telemetryResult.value), String(temperatureValue));
-    await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
 });
 
 test.serial('Test reported properties and twin', async t => {
@@ -538,6 +535,7 @@ test.serial('Test restart', async t => {
             t,
             t.context.device.id
         );
+        await sleep(5000);
         break;
     }
 });
