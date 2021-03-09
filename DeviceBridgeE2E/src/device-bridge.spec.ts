@@ -336,7 +336,7 @@ test.serial('Test restart', async t => {
         }
     );
 
-    await sleep(30000);
+    await sleep(60000);
     var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(t, t.context.device.id);
     var invocationValueBody = JSON.parse(invocationValue.body);
     t.is(invocationValueBody.status, "Connected");
