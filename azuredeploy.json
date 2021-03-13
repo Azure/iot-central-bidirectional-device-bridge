@@ -273,14 +273,11 @@
                     {
                         "name": "caddy-ssl-server",
                         "properties": {
-                          "image": "caddy:latest",
+                          "image": "caddy@sha256:d0b43ebda8fd47409cec98d5f3c3b4c60bfc6bca35338313c002dc64c2283055",
                           "command": [
-                            "caddy", 
-                            "reverse-proxy", 
-                            "--from", 
-                            "[concat(parameters('bridge-name'), '.', resourceGroup().location, '.azurecontainer.io')]",
-                            "--to",
-                            "localhost:5001"
+                            "/bin/sh",
+                            "-c",
+                            "[concat('caddy reverse-proxy --from ', parameters('bridge-name'), '.', resourceGroup().location, '.azurecontainer.io', ' --to localhost:5001 2>> /tmp/caddy.log')]"
                             ],
                           "ports": [
                             {
