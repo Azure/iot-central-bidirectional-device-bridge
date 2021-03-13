@@ -362,6 +362,12 @@ The Caddy webserver deployed in the solution uses [Let's Encrypt](https://letsen
 This service is free. If desired, you may use a different
 [certificate authority and webserver configuration](https://docs.microsoft.com/en-us/azure/container-instances/container-instances-container-group-ssl).
 
+To reduce the amount of logs stored in the Log Analytics workspace, the Caddy webserver output is redirected to a file.
+To inspect the webserver logs, navigate to the Bridge container group in Azure Portal (whose name starts with `iotc-container-groups-`), under `Containers` select the `caddy-ssl-server` container. Click the `Connect` tab and select `/bin/sh`. The logs
+will be in the `/tmp/caddy.log` file. To see the last 10 lines of logs, use the command `tail -n 10 /tmp/caddy.log`, as in the image below:
+
+![Webserver logs](Docs/Assets/caddy-logs.png "webserver logs")
+
 ## Custom adapters
 One of the possible ways to extend the functionality of this Bridge is through a custom adapter deployed as a sidecar container.
 With this type of adapter, which can be written in the language and runtime of your choice, you can for instance transform

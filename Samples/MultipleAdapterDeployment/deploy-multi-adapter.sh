@@ -168,14 +168,11 @@ echo "  - name: \"${bridgeContainerName}\"
           cpu: 0.8
   - name: caddy-ssl-server
     properties:
-      image: caddy:latest
+      image: caddy@sha256:d0b43ebda8fd47409cec98d5f3c3b4c60bfc6bca35338313c002dc64c2283055
       command:
-      - \"caddy\"
-      - \"run\"
-      - \"--config\"
-      - \"/mnt/caddyfile\"
-      - \"--adapter\"
-      - \"caddyfile\"
+      - \"/bin/sh\"
+      - \"-c\"
+      - \"caddy run --config /mnt/caddyfile --adapter caddyfile 2>> /tmp/caddy.log\"
       ports:
       - protocol: TCP
         port: 443
