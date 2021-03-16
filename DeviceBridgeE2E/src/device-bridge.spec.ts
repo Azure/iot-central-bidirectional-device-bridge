@@ -516,7 +516,7 @@ test.serial('Test restart', async t => {
         },
     });
 
-    var attempts = 24;
+    var attempts = 12;
     for (var i = 0; i < attempts; i++) {
         var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
             t,
