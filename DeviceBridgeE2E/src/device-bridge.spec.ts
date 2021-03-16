@@ -502,7 +502,7 @@ test.serial('Test restart', async t => {
         t.context.device.id,
         callbackUrl
     );
-    await sleep(3000);
+    await sleep(10000);
     // Delete echo for conection status
     await t.context.ctx.deviceBridgAPI.deleteEcho(t, t.context.device.id);
     // Restart container
@@ -516,13 +516,14 @@ test.serial('Test restart', async t => {
         },
     });
 
-    var attempts = 12;
+    var attempts = 24;
     for (var i = 0; i < attempts; i++) {
         var invocationValue = await t.context.ctx.deviceBridgAPI.getEcho(
             t,
             t.context.device.id
         );
-        if (invocationValue.Body == undefined) {
+        if (invocationValue.statusCode == 204) {
+            await sleep(3000);
             continue;
         }
         var invocationValueBody = JSON.parse(invocationValue.body);
