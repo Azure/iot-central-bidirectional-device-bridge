@@ -186,7 +186,7 @@ export default class DeviceBridgeAPI {
         t: ExecutionContext,
         deviceId: string
     ): Promise<any> {
-        return await got.delete<any>(this.getUrlFuncs()["connectionStatus"](deviceId), {
+        return await got.delete<any>(this.getUrlFuncs()["connectionStatus"](deviceId) + "/sub", {
             headers: await this._headers(),
             hooks: {
                 afterResponse: [this._logger(t, 'DELETE')],
