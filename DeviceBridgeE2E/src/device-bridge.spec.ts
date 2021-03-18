@@ -527,6 +527,10 @@ test.serial('Test restart', async t => {
             continue;
         }
         var invocationValueBody = JSON.parse(invocationValue.body);
+        if(invocationValueBody.status == "Disabled"){
+            await sleep(3000);
+            continue;
+        }
         t.is(invocationValueBody.status, 'Connected');
         t.is(invocationValueBody.eventType, 'ConnectionStatusChange');
         t.is(invocationValueBody.deviceId, t.context.device.id);
