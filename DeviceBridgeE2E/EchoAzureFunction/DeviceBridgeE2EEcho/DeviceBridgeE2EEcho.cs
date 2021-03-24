@@ -50,11 +50,7 @@ namespace FunctionApp1
                 cache.AddOrUpdate(deviceId, requestBody, (k, v) => requestBody);
             } else if(req.Method == "DELETE")
             {
-                string value;
-                if (!cache.TryRemove(deviceId, out value))
-                {
-                    return new ConflictObjectResult("Conflict when deleting from dictionary");
-                }
+                cache.TryRemove(deviceId, out _);
             }
 
             return new OkObjectResult("Undefined");

@@ -14,6 +14,8 @@ export interface TestContext {
     callbackUrl: string,
     apiToken: string,
     deviceBridgeKey: string,
+    restartApiUrl: string,
+    restartBearerToken: string,
 }
 
 export async function setup(t: ExecutionContext): Promise<TestContext> {
@@ -23,6 +25,8 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
     var DEVICE_BRIDGE_KEY = "";
     var AZURE_FUNCTION_URL = "";
     var API_TOKEN = "";
+    var RESTART_API_URL = "";
+    var RESTART_BEARER_TOKEN = "";
 
     args.forEach(arg => {
         if(arg.startsWith("--app-url=")){
@@ -40,6 +44,12 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
         if(arg.startsWith("--api-token=")){
             API_TOKEN = arg.substring(arg.indexOf('=')+1).trim();
         }
+        if(arg.startsWith("--restart-api-url=")){
+            RESTART_API_URL = arg.substring(arg.indexOf('=')+1).trim();
+        }
+        if(arg.startsWith("--restart-bearer-token=")){
+            RESTART_BEARER_TOKEN = arg.substring(arg.indexOf('=')+1).trim();
+        }
     })
 
     var publicAPI = await PublicAPI.create(APP_URL,API_TOKEN);
@@ -51,6 +61,8 @@ export async function setup(t: ExecutionContext): Promise<TestContext> {
         deviceBridgAPI,
         callbackUrl,
         apiToken: API_TOKEN,
-        deviceBridgeKey: DEVICE_BRIDGE_KEY
+        deviceBridgeKey: DEVICE_BRIDGE_KEY,
+        restartApiUrl: RESTART_API_URL,
+        restartBearerToken: RESTART_BEARER_TOKEN
     };
 }

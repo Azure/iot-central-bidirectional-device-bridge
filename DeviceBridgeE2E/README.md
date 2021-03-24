@@ -31,5 +31,16 @@ npm run start -- --
   --azure-function-url=<url>?=<key>
   --device-bridge-url=<url> 
   --api-token=<iot-central-api-token>
+  --restart-api-url={azure REST api to restart containers}
+  --restart-bearer-token={bearer token for azure APIs}
 ```
 
+Example restart api url: https://management.azure.com/subscriptions/{subscription id}/resourceGroups/device-bridge-deployment/providers/Microsoft.ContainerInstance/containerGroups/{container groups name}/restart?api-version=2019-12-01
+
+Powershell script to get azure bearer token:
+```
+$azContext = Get-AzContext
+$azProfile = [Microsoft.Azure.Commands.Common.Authentication.Abstractions.AzureRmProfileProvider]::Instance.Profile
+$profileClient = New-Object -TypeName Microsoft.Azure.Commands.ResourceManager.Common.RMProfileClient -ArgumentList ($azProfile)
+$token = $profileClient.AcquireAccessToken($azContext.Subscription.TenantId)
+```
