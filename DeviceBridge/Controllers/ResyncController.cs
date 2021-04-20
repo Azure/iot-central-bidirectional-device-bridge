@@ -33,7 +33,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status202Accepted)]
         public ActionResult Resync(string deviceId)
         {
-            var _ = _subscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(deviceId, false /* fetch latest subscriptions from DB */, true /* retry failed connection */);
+            var _ = _subscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(deviceId);
             return Accepted();
         }
     }

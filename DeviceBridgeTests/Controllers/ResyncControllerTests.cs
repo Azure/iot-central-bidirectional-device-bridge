@@ -26,7 +26,7 @@ namespace DeviceBridge.Controllers.Tests
         public void TestRegister()
         {
             _resyncController.Resync(MockDeviceId);
-            _subscriptionServiceMock.Verify(p => p.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(MockDeviceId, false, true));
+            _subscriptionServiceMock.Verify(p => p.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(MockDeviceId, false));
         }
     }
 }
