@@ -194,8 +194,7 @@ namespace DeviceBridge.Services
         /// </summary>
         /// <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
         /// <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
-        /// <param name="forceConnectionRetry">Whether to force a connection retry if the current connection is in a failed state.</param>
-        public async Task SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(string deviceId, bool useInitializationList = false, bool forceConnectionRetry = false)
+        public async Task SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(string deviceId, bool useInitializationList = false)
         {
             _logger.Info("Attempting to synchronize DB and engine subscriptions for device {deviceId}", deviceId);
 
@@ -262,7 +261,7 @@ namespace DeviceBridge.Services
                 // The device needs a connection constantly open if at least one data subscription exists. If not, the connection can be closed.
                 if (dataSubscriptions.Count > 0)
                 {
-                    await _connectionManager.AssertDeviceConnectionOpenAsync(deviceId, false /* permanent */, forceConnectionRetry);
+                    await _connectionManager.AssertDeviceConnectionOpenAsync(deviceId, false /* permanent */);
                 }
                 else
                 {

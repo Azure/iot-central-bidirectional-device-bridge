@@ -127,14 +127,9 @@ namespace DeviceBridge.Services.Tests
                 ShimDeviceClientAndEmitStatus(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Retry_Expired);
                 await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id");
 
-                // If recreateFailedClient is set to false (default), don't try to recreate a client in a permanent failure state
+                // Check that it tries to recreate a client in a permanent failure state
                 ShimDeviceClientAndCaptureClose(() => closeCount++);
                 await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id");
-                Assert.AreEqual(0, closeCount);
-
-                // If recreateFailedClient is set to true, tries to recreate a client in a permanent failure state
-                ShimDeviceClientAndCaptureClose(() => closeCount++);
-                await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id", false, true);
                 Assert.AreEqual(1, closeCount);
             }
         }
@@ -174,72 +169,11 @@ namespace DeviceBridge.Services.Tests
                 await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
                 Assert.True(registrationAttempted);
 
-                // Check that DPS registration is not attempted if connection attempt fails with unknown error.
+                // Check that DPS registration is attempted if connection attempt fails with unknown error.
                 registrationAttempted = false;
                 ShimDeviceClientToFail(new Exception());
                 await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
-                Assert.False(registrationAttempted);
-            }
-        }
-
-        [Test]
-        public async Task AssertDeviceConnectionOpenAsyncTriesAllKnownHubs()
-        {
-            using (ShimsContext.Create())
-            {
-                var hubCache = new List<HubCacheEntry>()
-                {
-                    new HubCacheEntry()
-                    {
-                        DeviceId = "another-device-id-1",
-                        Hub = "known-hub-1.azure.devices.net",
-                    },
-                    new HubCacheEntry()
-                    {
-                        DeviceId = "another-device-id-2",
-                        Hub = "known-hub-2.azure.devices.net",
-                    },
-                };
-                var connectionManager = CreateConnectionManager(hubCache);
-                _storageProviderMock.Invocations.Clear();
-
-                // Check that it Attempts to connect to a known hub, even if it the device Id doesn't match.
-                string connStr = null;
-                ShimDeviceClientAndCaptureConnectionString(capturedConnStr => connStr = capturedConnStr);
-                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                Assert.True(connStr.Contains("known-hub-1.azure.devices.net") || connStr.Contains("known-hub-2.azure.devices.net"));
-
-                // Check that hub was cached in the DB.
-                _storageProviderMock.Verify(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), "test-device-id", It.IsIn(new string[] { "known-hub-1.azure.devices.net", "known-hub-2.azure.devices.net" })), Times.Once);
-
-                // Checks that failure to save hub in DB cache doesn't fail the open operation.
-                connectionManager = CreateConnectionManager(hubCache);
-                _storageProviderMock.Setup(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), It.IsAny<string>(), It.IsAny<string>())).Throws(new Exception());
-                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                _storageProviderMock.Setup(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), It.IsAny<string>(), It.IsAny<string>())).Verifiable();
-
-                // Check that the device client is cached and not reopened in subsequent calls.
-                bool openAttempted = false;
-                ShimDeviceClientAndCaptureOpen(() => openAttempted = true);
-                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                Assert.False(openAttempted);
-
-                // Check that all hubs are tried and DPS registration is eventually attempted if connection
-                // error indicates that the device doesn't exist in the target hub.
-                connectionManager = CreateConnectionManager(hubCache);
-                var connStrs = new List<string>();
-                ShimDeviceClientToFailAndCaptureConnectionString(capturedConnStr => connStrs.Add(capturedConnStr), new DeviceNotFoundException());
-                var registrationAttempted = false;
-                ShimDpsAndCaptureRegistration("test-hub.azure.devices.net", () => registrationAttempted = true);
-                await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
-                Assert.True((connStrs.Find(s => s.Contains("known-hub-1.azure.devices.net")) != null) && (connStrs.Find(s => s.Contains("known-hub-2.azure.devices.net")) != null));
                 Assert.True(registrationAttempted);
-
-                // Check that DPS registration is not attempted if connection attempt fails with unknown error.
-                registrationAttempted = false;
-                ShimDeviceClientToFail(new Exception());
-                await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
-                Assert.False(registrationAttempted);
             }
         }
 

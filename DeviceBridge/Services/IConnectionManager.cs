@@ -15,7 +15,7 @@ namespace DeviceBridge.Services
     {
         Task AssertDeviceConnectionClosedAsync(string deviceId, bool temporary = false);
 
-        Task AssertDeviceConnectionOpenAsync(string deviceId, bool temporary = false, bool recreateFailedClient = false, CancellationToken? cancellationToken = null);
+        Task AssertDeviceConnectionOpenAsync(string deviceId, bool temporary = false, CancellationToken? cancellationToken = null);
 
         void Dispose();
 

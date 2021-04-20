@@ -101,8 +101,8 @@ namespace DeviceBridge.Services.Tests
                 _connectionManagerMock.Verify(p => p.SetDesiredPropertyUpdateCallbackAsync("test-device-3", "http://abc", It.IsAny<DesiredPropertyUpdateCallback>()), Times.Once);
 
                 // Devices 1 and 3 have data subscriptions, so the connections should be open.
-                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-1", false, false, null), Times.Once);
-                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-3", false, false, null), Times.Once);
+                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-1", false, null), Times.Once);
+                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-3", false, null), Times.Once);
             }
         }
 
@@ -261,7 +261,7 @@ namespace DeviceBridge.Services.Tests
                 Assert.AreEqual("http://abc", result.CallbackUrl);
                 Assert.AreEqual(DeviceSubscriptionType.C2DMessages, result.SubscriptionType);
                 _connectionManagerMock.Verify(p => p.SetMessageCallbackAsync("test-device-id", "http://abc", It.IsAny<Func<Message, Task<ReceiveMessageCallbackStatus>>>()), Times.Once);
-                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-id", false, false, null), Times.Once);
+                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-id", false, null), Times.Once);
 
                 // Delete removes the subscription from DB, triggers initialization, and closes the connection.
                 _connectionManagerMock.Invocations.Clear();
@@ -345,19 +345,6 @@ namespace DeviceBridge.Services.Tests
                 };
                 await propertyCallback(new TwinCollection("{\"tel\": 1}"), null);
             }
-        }
-
-        [Test]
-        [Description("Checks that passing forceConnectionRetry to the resync method forces reconnection of failed client")]
-        public async Task ResyncForceConnectionRetry()
-        {
-            _connectionManagerMock.Invocations.Clear();
-            _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
-            var propertySub = GetTestSubscription("test-device-id", DeviceSubscriptionType.DesiredProperties);
-            _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), It.IsAny<string>())).Returns(Task.FromResult(new List<DeviceSubscription>() { propertySub }));
-            var subscriptionService = new SubscriptionService(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, _httpClientFactoryMock.Object, 2, 10);
-            await subscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device-id", false, true);
-            _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-id", false, true, null), Times.Once);
         }
 
         private static DeviceSubscription GetTestSubscription(string deviceId, DeviceSubscriptionType type)

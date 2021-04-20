@@ -445,14 +445,13 @@
             <param name="threshold">Timestamp to filter by.</param>
             <returns>The list of device Ids that attempted to connect since the given timestamp.</returns>
         </member>
-        <member name="M:DeviceBridge.Services.ConnectionManager.AssertDeviceConnectionOpenAsync(System.String,System.Boolean,System.Boolean,System.Nullable{System.Threading.CancellationToken})">
+        <member name="M:DeviceBridge.Services.ConnectionManager.AssertDeviceConnectionOpenAsync(System.String,System.Boolean,System.Nullable{System.Threading.CancellationToken})">
             <summary>
             Asserts that a permanent or temporary connection for this device is open.
             A temporary connection is guaranteed to live for only a few minutes (currently 9-11 minutes).
             </summary>
             <param name="deviceId">Id of the device to open a connection for.</param>
             <param name="temporary">Whether the requested connection is temporary or permanent.</param>
-            <param name="recreateFailedClient">Forces the recreation of the current client if it's in a permanent failure state (i.e., the SDK will not retry).</param>
             <param name="cancellationToken">Optional cancellation token.</param>
         </member>
         <member name="M:DeviceBridge.Services.ConnectionManager.AssertDeviceConnectionClosedAsync(System.String,System.Boolean)">
@@ -531,20 +530,6 @@
             <param name="deviceId">Id of the device for which to build the callback.</param>
             <returns>The connection status change handler.</returns>
         </member>
-        <member name="T:DeviceBridge.Services.CustomDeviceClientRetryPolicy">
-            <summary>
-            Extends the default SDK retry policy (ExponentialBackoff) to fail right away if the hub doesn't exist.
-            </summary>
-        </member>
-        <member name="M:DeviceBridge.Services.CustomDeviceClientRetryPolicy.ShouldRetry(System.Int32,System.Exception,System.TimeSpan@)">
-            <summary>
-            Returns true if, based on the parameters, the operation should be retried.
-            </summary>
-            <param name="currentRetryCount">How many times the operation has been retried.</param>
-            <param name="lastException">Operation exception.</param>
-            <param name="retryInterval">Next retry should be performed after this time interval.</param>
-            <returns>True if the operation should be retried, false otherwise.</returns>
-        </member>
         <member name="T:DeviceBridge.Services.ExpiredConnectionCleanupHostedService">
             <summary>
             When the application starts, start the expired connection cleanup task.
@@ -564,14 +549,13 @@
             For use during service startup.
             </summary>
         </member>
-        <member name="M:DeviceBridge.Services.SubscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(System.String,System.Boolean,System.Boolean)">
+        <member name="M:DeviceBridge.Services.SubscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(System.String,System.Boolean)">
             <summary>
             Asserts that the internal engine state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
             Only applies to data subscriptions, i.e., not connection status subscriptions.
             </summary>
             <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
             <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
-            <param name="forceConnectionRetry">Whether to force a connection retry if the current connection is in a failed state.</param>
         </member>
         <member name="M:DeviceBridge.Services.SubscriptionService.ComputeDataSubscriptionStatus(System.String,DeviceBridge.Models.DeviceSubscriptionType,System.String)">
             <summary>

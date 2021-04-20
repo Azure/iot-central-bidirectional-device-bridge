@@ -23,6 +23,6 @@ namespace DeviceBridge.Services
 
         Task StartDataSubscriptionsInitializationAsync();
 
-        Task SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(string deviceId, bool useInitializationList = false, bool forceConnectionRetry = false);
+        Task SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(string deviceId, bool useInitializationList = false);
     }
 }
