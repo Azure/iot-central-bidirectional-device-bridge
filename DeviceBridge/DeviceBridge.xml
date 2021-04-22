@@ -530,6 +530,19 @@
             <param name="deviceId">Id of the device for which to build the callback.</param>
             <returns>The connection status change handler.</returns>
         </member>
+        <member name="T:DeviceBridge.Services.ConnectionStatusSubscriptionService">
+            <summary>
+            CRUD operations for connection status subscriptions. It synchronizes the DB and device client callback update to make sure
+            that the registered callback always reflects the actual subscription stored in the DB.
+            The synchronization is separate from data subscriptions, which might take a long time to synchronize due to connection creation.
+            </summary>
+        </member>
+        <member name="T:DeviceBridge.Services.DataSubscriptionService">
+            <summary>
+            CRUD operations for data (C2D) subscriptions.
+            This module takes care of the storage of data subscriptions and hands over all connection management operations asynchronously to the scheduler.
+            </summary>
+        </member>
         <member name="T:DeviceBridge.Services.ExpiredConnectionCleanupHostedService">
             <summary>
             When the application starts, start the expired connection cleanup task.
@@ -543,21 +556,21 @@
               hasn't connected in the last week.
             </summary>
         </member>
-        <member name="M:DeviceBridge.Services.SubscriptionService.StartDataSubscriptionsInitializationAsync">
+        <member name="T:DeviceBridge.Services.SubscriptionCallbackFactory">
             <summary>
-            Starts the Initialization of data subscriptions for all devices based on the list fetched from the DB at service construction time.
-            For use during service startup.
+            This module contains the logic to build custom device client callbacks for subscriptions.
+            The callbacks convert C2D/connection events into HTTP notifications.
             </summary>
         </member>
-        <member name="M:DeviceBridge.Services.SubscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(System.String,System.Boolean)">
+        <member name="T:DeviceBridge.Services.SubscriptionScheduler">
             <summary>
-            Asserts that the internal engine state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
-            Only applies to data subscriptions, i.e., not connection status subscriptions.
+            Synchronizes the data (C2D) subscriptions of devices and their internal connection state, including:
+            - Initialization of existing subscriptions at service startup.
+            - Management of long-lived connections and retries on persistent connection failures (due to cloud-side scaling, disaster, and Hub moves).
+            - Computation of subscription status based on internal connection state.
             </summary>
-            <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
-            <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
         </member>
-        <member name="M:DeviceBridge.Services.SubscriptionService.ComputeDataSubscriptionStatus(System.String,DeviceBridge.Models.DeviceSubscriptionType,System.String)">
+        <member name="M:DeviceBridge.Services.SubscriptionScheduler.ComputeDataSubscriptionStatus(System.String,DeviceBridge.Models.DeviceSubscriptionType,System.String)">
             <summary>
             Determines the status of a subscription based on the current state of the device client.
             </summary>
@@ -565,6 +578,25 @@
             <param name="subscriptionType">Type of the subscription that we want the status for.</param>
             <param name="callbackUrl">URL for which we want to check the subscription status.</param>
             <returns>Status of the subscription.</returns>
+        </member>
+        <member name="M:DeviceBridge.Services.SubscriptionScheduler.StartDataSubscriptionsInitializationAsync">
+            <summary>
+            Starts the Initialization of data subscriptions for all devices based on the list fetched from the DB at service construction time.
+            For use during service startup.
+            </summary>
+        </member>
+        <member name="M:DeviceBridge.Services.SubscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(System.String,System.Boolean)">
+            <summary>
+            Asserts that the internal engine state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
+            Only applies to data subscriptions, i.e., not connection status subscriptions.
+            </summary>
+            <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
+            <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
+        </member>
+        <member name="T:DeviceBridge.Services.SubscriptionSchedulerHostedService">
+            <summary>
+            When the application starts, start the subscription scheduler task.
+            </summary>
         </member>
         <member name="T:DeviceBridge.Services.SubscriptionStartupHostedService">
             <summary>
