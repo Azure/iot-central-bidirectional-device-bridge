@@ -14,12 +14,12 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class DeviceBoundController : BaseController
     {
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly IDataSubscriptionService _dataSubscriptionService;
 
-        public DeviceBoundController(Logger logger, ISubscriptionService subscriptionService)
+        public DeviceBoundController(Logger logger, IDataSubscriptionService dataSubscriptionService)
             : base(logger)
         {
-            _subscriptionService = subscriptionService;
+            _dataSubscriptionService = dataSubscriptionService;
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscriptionWithStatus>> GetC2DMessageSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.GetDataSubscription(Logger, deviceId, DeviceSubscriptionType.C2DMessages, cancellationToken);
+            return await _dataSubscriptionService.GetDataSubscription(Logger, deviceId, DeviceSubscriptionType.C2DMessages, cancellationToken);
         }
 
         /// <summary>
@@ -69,7 +69,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscriptionWithStatus>> CreateOrUpdateC2DMessageSubscription(string deviceId, SubscriptionCreateOrUpdateBody body, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.CreateOrUpdateDataSubscription(Logger, deviceId, DeviceSubscriptionType.C2DMessages, body.CallbackUrl, cancellationToken);
+            return await _dataSubscriptionService.CreateOrUpdateDataSubscription(Logger, deviceId, DeviceSubscriptionType.C2DMessages, body.CallbackUrl, cancellationToken);
         }
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<ActionResult> DeleteC2DMessageSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            await _subscriptionService.DeleteDataSubscription(Logger, deviceId, DeviceSubscriptionType.C2DMessages, cancellationToken);
+            await _dataSubscriptionService.DeleteDataSubscription(Logger, deviceId, DeviceSubscriptionType.C2DMessages, cancellationToken);
             return NoContent();
         }
     }
