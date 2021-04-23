@@ -74,6 +74,8 @@ namespace DeviceBridge.Services
         private ConcurrentDictionary<string, long> _hasTemporaryConnectionUntil = new ConcurrentDictionary<string, long>(); // Timestamp representing until when a temporary device connection should be kept alive
         private ConcurrentDictionary<string, bool> _hasPermanentConnection = new ConcurrentDictionary<string, bool>(); // Indicates if a permanent connection is open for a device
 
+        private Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> _globalConnectionStatusChangeHandler;
+
         public ConnectionManager(Logger logger, string idScope, string sasKey, uint maxPoolSize, IStorageProvider storageProvider)
         {
             _logger = logger;
@@ -191,12 +193,8 @@ namespace DeviceBridge.Services
                 // Dispose the current client if it is in a permanent failure state.
                 if (_clientStatuses.TryGetValue(deviceId, out (ConnectionStatus status, ConnectionStatusChangeReason reason) currentStatus))
                 {
-                    // Permanent failure states taken from https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Samples/device/DeviceReconnectionSample
-                    bool isFailed = currentStatus.status == ConnectionStatus.Disconnected &&
-                        (currentStatus.reason == ConnectionStatusChangeReason.Device_Disabled ||
-                        currentStatus.reason == ConnectionStatusChangeReason.Bad_Credential ||
-                        currentStatus.reason == ConnectionStatusChangeReason.Communication_Error ||
-                        currentStatus.reason == ConnectionStatusChangeReason.Retry_Expired);
+                    // Permanent failure state, taken from https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Samples/device/DeviceReconnectionSample
+                    bool isFailed = currentStatus.status == ConnectionStatus.Disconnected;
 
                     if (isFailed && _clients.TryRemove(deviceId, out DeviceClient existingClient))
                     {
@@ -816,6 +814,16 @@ namespace DeviceBridge.Services
         }
 
         /// <summary>
+        /// Sets the global connection status change handler.
+        /// </summary>
+        /// <param name="callback">Callback to be called when the status of a device connection changes.</param>
+        public void SetGlobalConnectionStatusCallback(Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> callback)
+        {
+            _logger.Info("Setting global connection status handler");
+            _globalConnectionStatusChangeHandler = callback;
+        }
+
+        /// <summary>
         /// Sets the connection status change handler for a device.
         /// </summary>
         /// <param name="deviceId">Id of the device to set the callback for.</param>
@@ -931,6 +939,12 @@ namespace DeviceBridge.Services
                 if (_connectionStatusCallbacks.TryGetValue(deviceId, out var statusCallback))
                 {
                     var _ = statusCallback(status, reason).ContinueWith(t => _logger.Error(t.Exception, "Failed to execute custom connection status callback for device {deviceId}", deviceId), TaskContinuationOptions.OnlyOnFaulted);
+                }
+
+                // Execute the global status change handler if one was defined.
+                if (_globalConnectionStatusChangeHandler != null)
+                {
+                    var _ = _globalConnectionStatusChangeHandler(deviceId, status, reason).ContinueWith(t => _logger.Error(t.Exception, "Failed to execute global connection status callback for device {deviceId}", deviceId), TaskContinuationOptions.OnlyOnFaulted);
                 }
             };
         }
