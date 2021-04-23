@@ -499,6 +499,12 @@
             <param name="id">string identifying the callback, for tracking purposes.</param>
             <param name="callback">The callback to be called when a C2D message is received.</param>
         </member>
+        <member name="M:DeviceBridge.Services.ConnectionManager.SetGlobalConnectionStatusCallback(System.Func{System.String,Microsoft.Azure.Devices.Client.ConnectionStatus,Microsoft.Azure.Devices.Client.ConnectionStatusChangeReason,System.Threading.Tasks.Task})">
+            <summary>
+            Sets the global connection status change handler.
+            </summary>
+            <param name="callback">Callback to be called when the status of a device connection changes.</param>
+        </member>
         <member name="M:DeviceBridge.Services.ConnectionManager.SetConnectionStatusCallback(System.String,System.Func{Microsoft.Azure.Devices.Client.ConnectionStatus,Microsoft.Azure.Devices.Client.ConnectionStatusChangeReason,System.Threading.Tasks.Task})">
             <summary>
             Sets the connection status change handler for a device.
@@ -597,6 +603,11 @@
             </summary>
             <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
             <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
+        </member>
+        <member name="M:DeviceBridge.Services.SubscriptionScheduler.GetRetryGlobalConnectionStatusChangeCallback">
+            <summary>
+            Schedule retries on connection drops.
+            </summary>
         </member>
         <member name="T:DeviceBridge.Services.SubscriptionSchedulerHostedService">
             <summary>

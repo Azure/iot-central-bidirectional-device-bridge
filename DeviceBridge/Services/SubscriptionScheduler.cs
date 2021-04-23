@@ -344,5 +344,63 @@ namespace DeviceBridge.Services
                 mutex.Release();
             }
         }
+
+        /// <summary>
+        /// Schedule retries on connection drops.
+        /// </summary>
+        private Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> GetRetryGlobalConnectionStatusChangeCallback()
+        {
+            return async (deviceId, status, reason) =>
+            {
+                // Permanent failure state, taken from https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Samples/device/DeviceReconnectionSample
+                bool isFailed = status == ConnectionStatus.Disconnected;
+
+                // Don't retry if it's not a permanent failure.
+                if (!isFailed)
+                {
+                    _logger.Info("Ignoring global connection status change for device {deviceId} as status is not failed. Status: {status}. Reason: {reason}", deviceId, status, reason);
+                    return;
+                }
+
+                // Only retry if the device requires a permanent connection.
+                if (!_hasDataSubscriptions.TryGetValue(deviceId, out _))
+                {
+                    _logger.Info("Ignoring global connection status change for device {deviceId} as it does not have data subscriptions. Status: {status}. Reason: {reason}", deviceId, status, reason);
+                    return;
+                }
+
+                // Synchronize this block so we don't reschedule a connection retry while a connection attempt is ongoing.
+                var mutex = _dbAndConnectionStateSyncSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
+                await mutex.WaitAsync();
+
+                try
+                {
+                    var deviceStatus = _connectionManager.GetDeviceStatus(deviceId);
+
+                    // The connection status might have changed while we were waiting for the mutex.
+                    if (deviceStatus?.status != ConnectionStatus.Disconnected)
+                    {
+                        _logger.Info("Skipping retry attempt for device {deviceId} as status is no longer failed. Current status: {status}. Reason: {reason}", deviceId);
+                        return;
+                    }
+
+                    // If a connection is already scheduled, don't schedule again.
+                    if (_scheduledConnectionsNotBefore.TryGetValue(deviceId, out _))
+                    {
+                        _logger.Info("Skipping retry attempt for device {deviceId} as it already has a scheduled connection.", deviceId);
+                        return;
+                    }
+
+                    // A permanent failure means that the SDK has retried for a while, so reschedule a connection attempt as soon as possible.
+                    _logger.Info("Scheduling connection retry for device {deviceId}.", deviceId);
+                    var notBefore = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                    _scheduledConnectionsNotBefore.AddOrUpdate(deviceId, notBefore, (key, oldValue) => notBefore);
+                }
+                finally
+                {
+                    mutex.Release();
+                }
+            };
+        }
     }
 }
