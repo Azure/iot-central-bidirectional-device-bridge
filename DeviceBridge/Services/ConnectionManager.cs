@@ -100,7 +100,6 @@ namespace DeviceBridge.Services
             {
                 try
                 {
-                    _logger.Info("Performing expired connection cleanup");
                     var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
                     foreach (var entry in _hasTemporaryConnectionUntil)
@@ -117,7 +116,6 @@ namespace DeviceBridge.Services
                 }
 
                 // Trigger the next execution
-                _logger.Info("Finished expired connection cleanup. Scheduling next execution");
                 await Task.Delay(ExpiredConnectionCleanupIntervalMs);
             }
         }
