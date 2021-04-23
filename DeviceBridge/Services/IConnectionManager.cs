@@ -41,6 +41,8 @@ namespace DeviceBridge.Services
 
         Task SendEventAsync(Logger logger, string deviceId, IDictionary<string, object> payload, CancellationToken cancellationToken, IDictionary<string, string> properties = null, string componentName = null, DateTime? creationTimeUtc = null);
 
+        void SetGlobalConnectionStatusCallback(Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> callback);
+
         void SetConnectionStatusCallback(string deviceId, Func<ConnectionStatus, ConnectionStatusChangeReason, Task> callback);
 
         Task SetDesiredPropertyUpdateCallbackAsync(string deviceId, string id, DesiredPropertyUpdateCallback callback);
