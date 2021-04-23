@@ -604,7 +604,7 @@
             <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
             <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
         </member>
-        <member name="M:DeviceBridge.Services.SubscriptionScheduler.GetRetryGlobalConnectionStatusChangeCallback">
+        <member name="M:DeviceBridge.Services.SubscriptionScheduler.GetRetryGlobalConnectionStatusChangeCallback(System.String,Microsoft.Azure.Devices.Client.ConnectionStatus,Microsoft.Azure.Devices.Client.ConnectionStatusChangeReason)">
             <summary>
             Schedule retries on connection drops.
             </summary>
