@@ -170,14 +170,12 @@ namespace DeviceBridge.Services
 
             while (true)
             {
-                int startedConnections = 0;
-
                 try
                 {
-                    _logger.Info("Executing subscription scheduler");
                     var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
                     // Start any scheduled connections whose 'not before' timestamp has already expired (up to the maximum batch size).
+                    int startedConnections = 0;
                     foreach (var entry in _scheduledConnectionsNotBefore)
                     {
                         if (currentTime >= entry.Value)
@@ -192,6 +190,11 @@ namespace DeviceBridge.Services
                             break;
                         }
                     }
+
+                    if (startedConnections > 0)
+                    {
+                        _logger.Info("Subscription scheduler started {connectionCount} connections.", startedConnections);
+                    }
                 }
                 catch (Exception e)
                 {
@@ -199,7 +202,6 @@ namespace DeviceBridge.Services
                 }
 
                 // Trigger the next execution
-                _logger.Info("Subscription scheduler started {connectionCount} connections. Scheduling next execution.", startedConnections);
                 await Task.Delay((int)_connectionBatchIntervalMs);
             }
         }
