@@ -567,6 +567,7 @@
             Synchronizes the data (C2D) subscriptions of devices and their internal connection state, including:
             - Initialization of existing subscriptions at service startup.
             - Management of long-lived connections and retries on persistent connection failures (due to cloud-side scaling, disaster, and Hub moves).
+            - Connection rate limiting.
             - Computation of subscription status based on internal connection state.
             </summary>
         </member>
@@ -585,10 +586,14 @@
             For use during service startup.
             </summary>
         </member>
+        <member name="M:DeviceBridge.Services.SubscriptionScheduler.StartSubscriptionSchedulerAsync">
+            <summary>
+            The scheduler starts a batch of scheduled connections in each interval.
+            </summary>
+        </member>
         <member name="M:DeviceBridge.Services.SubscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(System.String,System.Boolean)">
             <summary>
-            Asserts that the internal engine state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
-            Only applies to data subscriptions, i.e., not connection status subscriptions.
+            Triggers a synchronization of the internal state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
             </summary>
             <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
             <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>

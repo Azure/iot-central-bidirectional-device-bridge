@@ -56,11 +56,11 @@ namespace DeviceBridge
 
             // Override defaults
             var customMaxPoolSize = Environment.GetEnvironmentVariable("MAX_POOL_SIZE");
-            var customRampupBatchSize = Environment.GetEnvironmentVariable("DEVICE_RAMPUP_BATCH_SIZE");
-            var customRampupBatchIntervalMs = Environment.GetEnvironmentVariable("DEVICE_RAMPUP_BATCH_INTERVAL_MS");
+            var customConnectionBatchSize = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_BATCH_SIZE");
+            var customConnectionBatchIntervalMs = Environment.GetEnvironmentVariable("DEVICE_CONNECTION_BATCH_INTERVAL_MS");
             uint maxPoolSize = (customMaxPoolSize != null && customMaxPoolSize != string.Empty) ? Convert.ToUInt32(customMaxPoolSize, 10) : ConnectionManager.DeafultMaxPoolSize;
-            uint rampupBatchSize = (customRampupBatchSize != null && customRampupBatchSize != string.Empty) ? Convert.ToUInt32(customRampupBatchSize, 10) : SubscriptionScheduler.DefaultRampupBatchSize;
-            uint rampupBatchIntervalMs = (customRampupBatchIntervalMs != null && customRampupBatchIntervalMs != string.Empty) ? Convert.ToUInt32(customRampupBatchIntervalMs, 10) : SubscriptionScheduler.DefaultRampupBatchIntervalMs;
+            uint rampupBatchSize = (customConnectionBatchSize != null && customConnectionBatchSize != string.Empty) ? Convert.ToUInt32(customConnectionBatchSize, 10) : SubscriptionScheduler.DefaultConnectionBatchSize;
+            uint rampupBatchIntervalMs = (customConnectionBatchIntervalMs != null && customConnectionBatchIntervalMs != string.Empty) ? Convert.ToUInt32(customConnectionBatchIntervalMs, 10) : SubscriptionScheduler.DefaultConnectionBatchIntervalMs;
 
             _logger.SetProperty("idScope", idScope);
             _logger.SetProperty("cv", Guid.NewGuid()); // CV for all background operations

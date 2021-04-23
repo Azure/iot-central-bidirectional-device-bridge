@@ -17,16 +17,13 @@ namespace DeviceBridge.Services
     /// Synchronizes the data (C2D) subscriptions of devices and their internal connection state, including:
     /// - Initialization of existing subscriptions at service startup.
     /// - Management of long-lived connections and retries on persistent connection failures (due to cloud-side scaling, disaster, and Hub moves).
+    /// - Connection rate limiting.
     /// - Computation of subscription status based on internal connection state.
     /// </summary>
     public class SubscriptionScheduler : ISubscriptionScheduler
     {
-        public const uint DefaultRampupBatchSize = 150; // How many devices to synchronize at a time when performing a full DB sync of all subscriptions
-        public const uint DefaultRampupBatchIntervalMs = 1000; // How long to wait between each batch when performing a full DB sync of all subscriptions
-
-        // TODO: move to env vars.
-        private const int ConnectionSchedulerIntervalMs = 1000; // Interval between executions of the connection scheduler.
-        private const int ConnectionSchedulerBatchSize = 150; // Maximum number of connections to start in a given execution of the connection scheduler.
+        public const uint DefaultConnectionBatchSize = 150; // Maximum number of connections to start in a given execution of the connection scheduler.
+        public const uint DefaultConnectionBatchIntervalMs = 1000; // Interval between executions of the connection scheduler.
 
         private const int ConnectionBackoffPerFailedAttemptSeconds = 5 * 60; // 5 minutes
         private const int MaxConnectionBackoffSeconds = 30 * 60; // 30 minutes
@@ -35,8 +32,8 @@ namespace DeviceBridge.Services
         private const string SubscriptionStatusRunning = "Running";
         private const string SubscriptionStatusStopped = "Stopped";
 
-        private readonly uint _rampupBatchSize;
-        private readonly uint _rampupBatchIntervalMs;
+        private readonly uint _connectionBatchSize;
+        private readonly uint _connectionBatchIntervalMs;
         private readonly IStorageProvider _storageProvider;
         private readonly IConnectionManager _connectionManager;
         private readonly ISubscriptionCallbackFactory _subscriptionCallbackFactory;
@@ -48,14 +45,14 @@ namespace DeviceBridge.Services
         private ConcurrentDictionary<string, byte> _hasDataSubscriptions = new ConcurrentDictionary<string, byte>(); // Stores which device Ids have data subscriptions. NOTE: used as workaround for absence of a ConcurrentHashSet (as recommended)
         private ConcurrentDictionary<string, int> _consecutiveConnectionFailures = new ConcurrentDictionary<string, int>(); // Stores how many consecutive times a device failed to connect. NOTE: used as workaround for absence of a ConcurrentHashSet (as recommended)
 
-        public SubscriptionScheduler(Logger logger, IConnectionManager connectionManager, IStorageProvider storageProvider, ISubscriptionCallbackFactory subscriptionCallbackFactory, uint rampupBatchSize, uint rampupBatchIntervalMs)
+        public SubscriptionScheduler(Logger logger, IConnectionManager connectionManager, IStorageProvider storageProvider, ISubscriptionCallbackFactory subscriptionCallbackFactory, uint connectionBatchSize, uint connectionBatchIntervalMs)
         {
             _logger = logger;
             _storageProvider = storageProvider;
             _connectionManager = connectionManager;
             _subscriptionCallbackFactory = subscriptionCallbackFactory;
-            _rampupBatchSize = rampupBatchSize;
-            _rampupBatchIntervalMs = rampupBatchIntervalMs;
+            _connectionBatchSize = connectionBatchSize;
+            _connectionBatchIntervalMs = connectionBatchIntervalMs;
 
             // Fetch from DB all subscriptions to be initialized on service startup. This must be done synchronously before
             // the service instance is fully constructed, so subsequent requests received by the service can prevent a device
@@ -148,22 +145,25 @@ namespace DeviceBridge.Services
             _logger.Info("Attempting to initialize subscriptions for all devices");
             var deviceIds = dataSubscriptionsToInitialize.Keys.ToList();
 
-            // Synchronizes one batch of devices at a time.
+            // Synchronizes one batch of devices at a time. This avoids the creation of too many async tasks simultaneously.
             for (int i = 0; i < deviceIds.Count; ++i)
             {
                 var deviceId = deviceIds[i];
                 var _ = SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(deviceId, true).ContinueWith(t => _logger.Error(t.Exception, "Failed to initialize DB subscriptions for device {deviceId}", deviceId), TaskContinuationOptions.OnlyOnFaulted);
 
-                if ((i + 1) % _rampupBatchSize == 0 && (i + 1) < deviceIds.Count)
+                if ((i + 1) % _connectionBatchSize == 0 && (i + 1) < deviceIds.Count)
                 {
-                    _logger.Info("Waiting {subscriptionFullSyncBatchIntervalMs} ms before syncing subscriptions for next {subscriptionFullSyncBatchSize} devices", _rampupBatchIntervalMs, _rampupBatchSize);
-                    await Task.Delay((int)_rampupBatchIntervalMs);
+                    _logger.Info("Waiting {subscriptionFullSyncBatchIntervalMs} ms before syncing subscriptions for next {subscriptionFullSyncBatchSize} devices", _connectionBatchIntervalMs, _connectionBatchSize);
+                    await Task.Delay((int)_connectionBatchIntervalMs);
                 }
             }
 
             _logger.Info("Successfully initialized subscriptions from DB for {deviceCount} devices", deviceIds.Count);
         }
 
+        /// <summary>
+        /// The scheduler starts a batch of scheduled connections in each interval.
+        /// </summary>
         public async Task StartSubscriptionSchedulerAsync()
         {
             _logger.Info("Started subscription scheduler task");
@@ -182,12 +182,12 @@ namespace DeviceBridge.Services
                     {
                         if (currentTime >= entry.Value)
                         {
-                            var _ = AttemptDeviceConnection(entry.Key).ContinueWith(t => _logger.Error(t.Exception, "Failed to issue scheduled connection attempt for device {deviceId}", entry.Key), TaskContinuationOptions.OnlyOnFaulted);
                             _scheduledConnectionsNotBefore.TryRemove(entry.Key, out long _);
+                            var _ = AttemptDeviceConnection(entry.Key).ContinueWith(t => _logger.Error(t.Exception, "Failed to issue scheduled connection attempt for device {deviceId}", entry.Key), TaskContinuationOptions.OnlyOnFaulted);
                             startedConnections++;
                         }
 
-                        if (startedConnections >= ConnectionSchedulerBatchSize)
+                        if (startedConnections >= _connectionBatchSize)
                         {
                             break;
                         }
@@ -200,19 +200,18 @@ namespace DeviceBridge.Services
 
                 // Trigger the next execution
                 _logger.Info("Subscription scheduler started {connectionCount} connections. Scheduling next execution.", startedConnections);
-                await Task.Delay(ConnectionSchedulerIntervalMs);
+                await Task.Delay((int)_connectionBatchIntervalMs);
             }
         }
 
         /// <summary>
-        /// Asserts that the internal engine state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
-        /// Only applies to data subscriptions, i.e., not connection status subscriptions.
+        /// Triggers a synchronization of the internal state (connection and callbacks) for a device reflects the subscriptions status and callbacks stored in the DB or in the initialization list.
         /// </summary>
         /// <param name="deviceId">Id of the device to synchronize subscriptions for.</param>
         /// <param name="useInitializationList">Whether subscriptions should be pulled from the initialization list or fetched from the DB.</param>
         public async Task SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(string deviceId, bool useInitializationList = false)
         {
-            _logger.Info("Attempting to synchronize DB and engine subscriptions for device {deviceId}", deviceId);
+            _logger.Info("Attempting to synchronize DB data subscriptions and internal state for device {deviceId}", deviceId);
 
             // Synchronizing this code is the only way to guarantee that the current state of the runner will always reflect the latest state in the DB.
             // Otherwise we could end up in an inconsistent state if a subscription is deleted and recreated too fast or if a subscription is modified
