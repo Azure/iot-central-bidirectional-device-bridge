@@ -382,7 +382,7 @@ namespace DeviceBridge.Services
                 // The connection status might have changed while we were waiting for the mutex.
                 if (deviceStatus?.status != ConnectionStatus.Disconnected)
                 {
-                    _logger.Info("Skipping retry attempt for device {deviceId} as status is no longer failed. Current status: {status}. Reason: {reason}", deviceId);
+                    _logger.Info("Skipping retry attempt for device {deviceId} as status is no longer failed.", deviceId);
                     return;
                 }
 
