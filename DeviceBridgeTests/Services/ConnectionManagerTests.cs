@@ -238,10 +238,13 @@ namespace DeviceBridge.Services.Tests
                 // Sets connection status change handler that updates local device connection status and calls user-defined
                 // callback if one exists and we're not in hub-probing phase.
                 connectionManager = CreateConnectionManager();
+                var globalStatusCallbackCalled = false;
+                connectionManager.SetGlobalConnectionStatusCallback((_, __, ___) => Task.FromResult(globalStatusCallbackCalled = true));
                 var statusCallbackCalled = false;
                 connectionManager.SetConnectionStatusCallback("test-device-id", (_, __) => Task.FromResult(statusCallbackCalled = true));
                 ShimDeviceClientAndEmitStatus(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
                 await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                Assert.True(globalStatusCallbackCalled);
                 Assert.True(statusCallbackCalled);
                 var status = connectionManager.GetDeviceStatus("test-device-id");
                 Assert.AreEqual(ConnectionStatus.Connected, status?.status);
