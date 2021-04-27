@@ -2,6 +2,7 @@
 
 using System;
 using System.Threading;
+using DeviceBridge.Models;
 using Microsoft.QualityTools.Testing.Fakes;
 
 namespace DeviceBridgeTests.Common
@@ -19,6 +20,17 @@ namespace DeviceBridgeTests.Common
             {
                 onCapture(@this);
                 return ShimsContext.ExecuteWithoutShims(() => @this.WaitAsync());
+            };
+        }
+
+        public static DeviceSubscription GetTestSubscription(string deviceId, DeviceSubscriptionType type)
+        {
+            return new DeviceSubscription()
+            {
+                DeviceId = deviceId,
+                SubscriptionType = type,
+                CallbackUrl = "http://abc",
+                CreatedAt = DateTime.Now,
             };
         }
     }

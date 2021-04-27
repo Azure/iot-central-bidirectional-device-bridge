@@ -15,7 +15,7 @@ namespace DeviceBridge.Controllers.Tests
     {
         private const string MockDeviceId = "test-device";
         private const string MockCallbackUrl = "mock-callback-url";
-        private Mock<ISubscriptionService> _subsciptionServiceMock;
+        private Mock<IConnectionStatusSubscriptionService> _connectionStatusSubsciptionServiceMock;
         private ConnectionStatusController _connectionStatusController;
         private DeviceSubscription _subscription;
         private Mock<IConnectionManager> _connectionManagerMock;
@@ -23,13 +23,13 @@ namespace DeviceBridge.Controllers.Tests
         [SetUp]
         public void Setup()
         {
-            _subsciptionServiceMock = new Mock<ISubscriptionService>();
+            _connectionStatusSubsciptionServiceMock = new Mock<IConnectionStatusSubscriptionService>();
             _connectionManagerMock = new Mock<IConnectionManager>();
-            _connectionStatusController = new ConnectionStatusController(LogManager.GetCurrentClassLogger(), _subsciptionServiceMock.Object, _connectionManagerMock.Object);
+            _connectionStatusController = new ConnectionStatusController(LogManager.GetCurrentClassLogger(), _connectionStatusSubsciptionServiceMock.Object, _connectionManagerMock.Object);
 
             _subscription = new DeviceSubscription();
-            _subsciptionServiceMock.Setup(s => s.GetConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_subscription));
-            _subsciptionServiceMock.Setup(s => s.CreateOrUpdateConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, MockCallbackUrl, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_subscription));
+            _connectionStatusSubsciptionServiceMock.Setup(s => s.GetConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_subscription));
+            _connectionStatusSubsciptionServiceMock.Setup(s => s.CreateOrUpdateConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, MockCallbackUrl, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_subscription));
         }
 
         [Test]
@@ -41,29 +41,29 @@ namespace DeviceBridge.Controllers.Tests
         }
 
         [Test]
-        [Description("GetConnectionStatusSubscription should call SubsciptionService.GetConnectionStatusSubscription with correct device id and returns the correct value.")]
+        [Description("GetConnectionStatusSubscription should call ConnectionStatusSubsciptionService.GetConnectionStatusSubscription with correct device id and returns the correct value.")]
         public async Task TestGetConnectionStatusSubscription()
         {
             var deviceSubscription = await _connectionStatusController.GetConnectionStatusSubscription(MockDeviceId);
-            _subsciptionServiceMock.Verify(p => p.GetConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>()));
+            _connectionStatusSubsciptionServiceMock.Verify(p => p.GetConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>()));
             Assert.AreEqual(_subscription, deviceSubscription.Value);
         }
 
         [Test]
-        [Description("CreateOrUpdateConnectionStatusSubscription should call SubscriptionService.CreateOrUpdateConnectionStatusSubscription with correct device id and callback url.")]
+        [Description("CreateOrUpdateConnectionStatusSubscription should call ConnectionStatusSubscriptionService.CreateOrUpdateConnectionStatusSubscription with correct device id and callback url.")]
         public async Task TestCreateOrUpdateConnectionStatusSubscription()
         {
             var body = new SubscriptionCreateOrUpdateBody { CallbackUrl = "testUrl" };
             var deviceSubscription = await _connectionStatusController.CreateOrUpdateConnectionStatusSubscription(MockDeviceId, body);
-            _subsciptionServiceMock.Verify(p => p.CreateOrUpdateConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, body.CallbackUrl, It.IsAny<CancellationToken>()));
+            _connectionStatusSubsciptionServiceMock.Verify(p => p.CreateOrUpdateConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, body.CallbackUrl, It.IsAny<CancellationToken>()));
         }
 
         [Test]
-        [Description("DeleteConnectionStatusSubscription should call SubscriptionService.DeleteConnectionStatusSubscription with correct device id.")]
+        [Description("DeleteConnectionStatusSubscription should call ConnectionStatusSubscriptionService.DeleteConnectionStatusSubscription with correct device id.")]
         public async Task TestDeleteConnectionStatusSubscription()
         {
             var result = await _connectionStatusController.DeleteConnectionStatusSubscription(MockDeviceId);
-            _subsciptionServiceMock.Verify(p => p.DeleteConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>()));
+            _connectionStatusSubsciptionServiceMock.Verify(p => p.DeleteConnectionStatusSubscription(It.IsAny<Logger>(), MockDeviceId, It.IsAny<CancellationToken>()));
         }
     }
 }
