@@ -44,7 +44,7 @@ namespace DeviceBridge.Services
 
         private const string GlobalDeviceEndpoint = "global.azure-devices-provisioning.net";
 
-        // Device client retry options - 18 retries over ~5 minutes for transient errors.
+        // Device client retry options - 36 retries over ~5 minutes for transient errors.
         private const int ClientRetryCount = 36;
         private const double ClientRetryMinBackoffMs = 100;
         private const double ClientRetryMaxBackoffSec = 10;
