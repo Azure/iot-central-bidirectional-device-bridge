@@ -29,6 +29,7 @@ such as data transformation and protocol adapter modules.
     + [Desired property updates](#desired-property-updates)
   * [Device connection status](#device-connection-status)
     + [Subscribing to connection status change events](#subscribing-to-connection-status-change-events)
+    + [Connection retries](#connection-retries)
     + [Restarting stopped subscriptions and forcing device reconnection](#restarting-stopped-subscriptions-and-forcing-device-reconnection)
   * [Device provisioning](#device-provisioning)
   * [Subscription callback retries](#subscription-callback-retries)
@@ -254,7 +255,7 @@ is received.
 
 ### Device connection status
 Internally, the Device Bridge connects devices to Azure IoT through AMQP using connection multiplexing. It transparently manages
-the life cycle of all connections (i.e., connecting, disconnecting, and retrying on transient errors). When you issue a command,
+the life cycle of all connections (i.e., connecting, disconnecting, and retrying on errors). When you issue a command,
 such as sending a message or getting the device twin, the Bridge opens
 a temporary connection for the device that is set to live between 9 to 11 minutes and is renewed as requests come. For subscriptions,
 the Bridge will open a permanent connection for the device. This connection will last until the last subscription is deleted.
@@ -263,24 +264,31 @@ Depending on the connection status of a device, it's subscriptions may have one 
 - `Starting`: initial status after a subscription is created and before the device has been connected internally.
 This status may also represent that the Bridge is reconnecting the device after the service restarts.
 - `Running`: the device is connected and events are flowing.
-- `Stopped`: the device is disconnected due to a permanent failure and events are not flowing. Permanent failure scenarios can include: the device has been disabled in the IoT Hub, credentials are no longer valid, the automatic connection retries
-expired due to a long period without network connectivity, etc.
+- `Stopped`: the device is disconnected due to a failure and events are not flowing. Failure scenarios can include transient issues,
+such as network unavailability, or permanent problems, as credentials no longer valid.
 
 #### Subscribing to connection status change events
 In many situations it may be useful to react to changes in the underlying device connection status. For instance,
 you may want to fetch the latest device twin whenever the device reconnects internally. Alternatively, you may want to
-be notified when a device experiences a permanent failure, such as credentials expired. For these scenarios you can subscribe
+be notified when a device experiences a failure, such as credentials expired. For these scenarios you can subscribe
 to connection status changes.
 
-Whenever the device internally connects or reconnects, a `Connected` event will be sent. If the device fails to connect permanently,
+Whenever the device internally connects or reconnects, a `Connected` event will be sent. If the device fails to connect or the connection is dropped,
 a `Disconnected` event will be emitted, including an associated failure reason. Other possible statuses are `Disabled` (the connection has
-been closed properly) and `Disconnected_Retrying` (the service is retrying to connect the device).
+been closed properly) and `Disconnected_Retrying` (the service is retrying to connect the device due to a transient error).
 For a detailed description of all status and reasons, see https://docs.microsoft.com/en-us/dotnet/api/microsoft.azure.devices.client.connectionstatus?view=azure-dotnet.
 
+#### Connection retries
+On a connection failure or connection drop scenario, the Bridge will keep retrying to connect the device internally
+regardless of the error reason. Transient errors, such as network unavailability are first retried for 5 minutes by the
+Azure IoT Device SDK builtin retries. Once SDK retries expire or a non-transient error happens, the Bridge will attempt a new DPS
+registration and connection for the device. Retry attempts are made 5, 10, 15, 15, 20, 25, and 30 minutes apart. After that, an
+attempt will be made every 30 minutes, until the device successfully connects.
+
 #### Restarting stopped subscriptions and forcing device reconnection
-Issuing a call to the `resync` endpoint will cause the Bridge to attempt to reconnect any device previously in a permanent failure state.
-If the device reconnection is successful, all stopped subscriptions will be back to a running state. You may want to issue this command, for instance,
-after re-enabling a device in IoT Hub.
+Issuing a call to the `resync` endpoint will cause the Bridge to attempt to reconnect any device right away.
+If the device reconnection is successful, all stopped subscriptions will be back to a running state.
+You may want to issue this command, for instance, if you don't want to wait for the builtin retries.
 
 ### Device provisioning
 By default, issuing a command to the Bridge on behalf of a device will cause it to be automatically provisioned. The device
@@ -317,9 +325,9 @@ If the service instance restarts, the Bridge will automatically reconnect any de
 all subscriptions will have a `Starting` status. The speed at which the Bridge reconnects devices is set by default to 150 connections per second.
 This means that, in the event of a container restart, it would take around one minute to reconnect 10,000 devices.
 
-> NOTE: this number can be customized through `DEVICE_RAMPUP_BATCH_SIZE` and `DEVICE_RAMPUP_BATCH_INTERVAL_MS` environment variables. However, before adjusting this
-values it's important to perform a load test to make sure that the service can support the desired reconnection speed. Factors that may influence this speed is
-the size of the hosting container, number of devices, and desired number of connections in the multiplexing pool.
+> NOTE: this number can be customized through `DEVICE_CONNECTION_BATCH_SIZE` and `DEVICE_CONNECTION_BATCH_INTERVAL_MS` environment variables.
+However, before adjusting this values it's important to perform a load test to make sure that the service can support the desired reconnection speed.
+Factors that may influence this speed is the size of the hosting container, number of devices, and desired number of connections in the multiplexing pool.
 
 ### Multiplexing and connection pool
 By default, the Bridge is configured to use a pool of 50 active AMQP connections. This amount allows around 50K devices to be connected
