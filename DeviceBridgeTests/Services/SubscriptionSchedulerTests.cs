@@ -403,13 +403,54 @@ namespace DeviceBridge.Services.Tests
             }
         }
 
-        // Constructor calls SetGlobalConnectionStatusCallback
-        // GetRetryGlobalConnectionStatusChangeCallback does nothing if state is not failed
-        // GetRetryGlobalConnectionStatusChangeCallback does nothing if device doesn't have a data subscription
-        // GetRetryGlobalConnectionStatusChangeCallback locks on the same semaphore as sync
-        // GetRetryGlobalConnectionStatusChangeCallback does nothing if state is no longer failed after semaphore unlocks
-        // GetRetryGlobalConnectionStatusChangeCallback does nothing if device already has a scheduled connection
-        // GetRetryGlobalConnectionStatusChangeCallback schedules a reconnection right away
+        [Test]
+        [Description("Connection retry on connection status changes/failures")]
+        public async Task GlobalConnectionStatusCallback()
+        {
+            using (ShimsContext.Create())
+            {
+                // Capture the status callback once it's registered.
+                Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> globalStatusChangeCallback = null;
+                _connectionManagerMock.Setup(p => p.SetGlobalConnectionStatusCallback(It.IsAny<Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task>>()))
+                    .Callback<Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task>>(callback => globalStatusChangeCallback = callback);
+
+                _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
+                var subscriptionCallbackFactory = new SubscriptionCallbackFactory(LogManager.GetCurrentClassLogger(), _httpClientFactoryMock.Object);
+                var subscriptionScheduler = new SubscriptionScheduler(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, subscriptionCallbackFactory, 2, 10);
+
+                // Check that the status change callback was registered.
+                Assert.NotNull(globalStatusChangeCallback);
+
+                // Check that the callback does nothing if the device doesn't have a data subscription.
+                SemaphoreSlim statusChangeSemaphore = null;
+                TestUtils.CaptureSemaphoreOnWait(capturedSemaphore => statusChangeSemaphore = capturedSemaphore);
+                await globalStatusChangeCallback("test-device", ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Retry_Expired);
+                Assert.IsNull(statusChangeSemaphore);
+
+                // Check that the callback does nothing if the device has a data subscription but the state is not failed.
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device", DeviceSubscriptionType.C2DMessages) }));
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+                statusChangeSemaphore = null;
+                await globalStatusChangeCallback("test-device", ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
+                Assert.IsNull(statusChangeSemaphore);
+
+                // Clear the connection that was scheduled by the sync.
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+
+                // GetRetryGlobalConnectionStatusChangeCallback locks on the same semaphore as sync.
+                SemaphoreSlim syncSemaphore = null;
+                TestUtils.CaptureSemaphoreOnWait(capturedSemaphore => syncSemaphore = capturedSemaphore);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+                statusChangeSemaphore = null;
+                TestUtils.CaptureSemaphoreOnWait(capturedSemaphore => statusChangeSemaphore = capturedSemaphore);
+                await globalStatusChangeCallback("test-device", ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Retry_Expired);
+                Assert.AreEqual(statusChangeSemaphore, syncSemaphore);
+
+                // Check that the sync scheduled a connection right away.
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+            }
+        }
 
         [Test]
         [Description("Checks that the status of a data subscription is correctly computed from the current device client status")]
