@@ -93,7 +93,7 @@ namespace DeviceBridge.Services.Tests
                 // If temporary is set to true, creates a temporary connection if one doesn't exist, without creating a permanent connection.
                 closeCount = 0;
                 await connectionManager.AssertDeviceConnectionOpenAsync("temporary-device-id", true);
-                ShimUtcNowAhead(20); // Move the clock so the temporary connection will expire.
+                TestUtils.ShimUtcNowAhead(20); // Move the clock so the temporary connection will expire.
                 await connectionManager.AssertDeviceConnectionClosedAsync("temporary-device-id");
                 Assert.AreEqual(0, closeCount, "Closing a permanent connection should not have closed a temporary connection");
                 await connectionManager.AssertDeviceConnectionClosedAsync("temporary-device-id", true);
@@ -101,14 +101,14 @@ namespace DeviceBridge.Services.Tests
 
                 // If temporary is set to true, renews a temporary connection if one already exists, without creating a permanent connection.
                 closeCount = 0;
-                UnshimUtcNow();
+                TestUtils.UnshimUtcNow();
                 await connectionManager.AssertDeviceConnectionOpenAsync("renew-device-id", true); // Create initial ~10min connection.
-                ShimUtcNowAhead(5);
+                TestUtils.ShimUtcNowAhead(5);
                 await connectionManager.AssertDeviceConnectionOpenAsync("renew-device-id", true); // Move the clock 5min and renew connection for another ~10min, so total connection duration is ~15min.
-                ShimUtcNowAhead(12);
+                TestUtils.ShimUtcNowAhead(12);
                 await connectionManager.AssertDeviceConnectionClosedAsync("renew-device-id", true);
                 Assert.AreEqual(0, closeCount, "Temporary connection should not have been closed after 12min, as it was renewed for ~15min");
-                ShimUtcNowAhead(18);
+                TestUtils.ShimUtcNowAhead(18);
                 await connectionManager.AssertDeviceConnectionClosedAsync("renew-device-id", true);
                 Assert.AreEqual(1, closeCount, "Temporary connection should have been closed after 18min.");
             }
@@ -756,25 +756,6 @@ namespace DeviceBridge.Services.Tests
                     Assert.Fail("Exception didn't match test");
                 }
             }
-        }
-
-        /// <summary>
-        /// Shims UtcNow to return a specific number of minutes into the future.
-        /// </summary>
-        /// <remarks>Must be used within a ShimsContext.</remarks>
-        /// <param name="minutes">How much to move the original time ahead.</param>
-        private static void ShimUtcNowAhead(int minutes)
-        {
-            System.Fakes.ShimDateTimeOffset.UtcNowGet = () => ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow).AddMinutes(minutes);
-        }
-
-        /// <summary>
-        /// Reverts UtcNow to its original behavior.
-        /// </summary>
-        /// <remarks>Must be used within a ShimsContext.</remarks>
-        private static void UnshimUtcNow()
-        {
-            System.Fakes.ShimDateTimeOffset.UtcNowGet = () => ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow);
         }
     }
 }

@@ -34,6 +34,7 @@ namespace DeviceBridge.Services.Tests
         {
             using (ShimsContext.Create())
             {
+                _connectionManagerMock.Invocations.Clear();
                 _storageProviderMock.Invocations.Clear();
 
                 // Return subscriptions for 4 different devices, with different combinations of status and data subscriptions.
@@ -102,9 +103,11 @@ namespace DeviceBridge.Services.Tests
                 _connectionManagerMock.Verify(p => p.SetMethodCallbackAsync("test-device-3", "http://abc", It.IsAny<MethodCallback>()), Times.Once);
                 _connectionManagerMock.Verify(p => p.SetDesiredPropertyUpdateCallbackAsync("test-device-3", "http://abc", It.IsAny<DesiredPropertyUpdateCallback>()), Times.Once);
 
-                // Devices 1 and 3 have data subscriptions, so their connections should be open.
-                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler);
+                // Devices 1, 3, and 4 have data subscriptions, so their connections should be open.
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 2, 10);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
                 _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-1", false, null), Times.Once);
+                _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-4", false, null), Times.Once);
                 _connectionManagerMock.Verify(p => p.AssertDeviceConnectionOpenAsync("test-device-3", false, null), Times.Once);
             }
         }
@@ -229,6 +232,186 @@ namespace DeviceBridge.Services.Tests
         }
 
         [Test]
+        [Description("Subscription scheduler only attempts up to _connectionBatchSize per scheduling interval")]
+        public async Task SubscriptionSchedulerRespectsConnectionBatchSize()
+        {
+            using (ShimsContext.Create())
+            {
+                // Return 3 devices with subscriptions, which the schedule will attempt to connect.
+                _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device-1")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device-1", DeviceSubscriptionType.C2DMessages) }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device-2")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device-1", DeviceSubscriptionType.C2DMessages) }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device-3")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device-1", DeviceSubscriptionType.C2DMessages) }));
+
+                var subscriptionCallbackFactory = new SubscriptionCallbackFactory(LogManager.GetCurrentClassLogger(), _httpClientFactoryMock.Object);
+                var subscriptionScheduler = new SubscriptionScheduler(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, subscriptionCallbackFactory, 2, 10);
+
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device-1", false);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device-2", false);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device-3", false);
+
+                // We set a batch size of 2, so the scheduler should attempt 2 connections, then 1, then 0.
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 2, 10);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+            }
+        }
+
+        [Test]
+        [Description("Subscription scheduler doesn't attempt connection until notBefore has expired")]
+        public async Task SubscriptionSchedulerRespectsNotBefore()
+        {
+            using (ShimsContext.Create())
+            {
+                // Return 1 devices with subscription, which the schedule will attempt to connect.
+                _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device", DeviceSubscriptionType.C2DMessages) }));
+                var subscriptionCallbackFactory = new SubscriptionCallbackFactory(LogManager.GetCurrentClassLogger(), _httpClientFactoryMock.Object);
+                var subscriptionScheduler = new SubscriptionScheduler(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, subscriptionCallbackFactory, 2, 10);
+
+                // Move clock so subscription will be scheduled in the future.
+                TestUtils.ShimUtcNowAhead(1);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+                TestUtils.UnshimUtcNow();
+
+                // Check that connection is not attempted.
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+            }
+        }
+
+        [Test]
+        [Description("AttemptDeviceConnection locks on the same semaphore as subscription sync")]
+        public async Task AttemptDeviceConnectionSemaphore()
+        {
+            using (ShimsContext.Create())
+            {
+                _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device", DeviceSubscriptionType.C2DMessages) }));
+                var subscriptionCallbackFactory = new SubscriptionCallbackFactory(LogManager.GetCurrentClassLogger(), _httpClientFactoryMock.Object);
+                var subscriptionScheduler = new SubscriptionScheduler(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, subscriptionCallbackFactory, 2, 10);
+
+                SemaphoreSlim syncSemaphore = null;
+                TestUtils.CaptureSemaphoreOnWait(capturedSemaphore => syncSemaphore = capturedSemaphore);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+
+                SemaphoreSlim connectionAttemptSemaphore = null;
+                TestUtils.CaptureSemaphoreOnWait(capturedSemaphore => connectionAttemptSemaphore = capturedSemaphore);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                Assert.AreEqual(syncSemaphore, connectionAttemptSemaphore);
+            }
+        }
+
+        [Test]
+        [Description("AttemptDeviceConnection reschedules connections 5, 10, 15, 20, 25, 30 min apart on connection failures")]
+        public async Task AttemptDeviceConnectionBackoff()
+        {
+            using (ShimsContext.Create())
+            {
+                // Make random(min, max) always return max so we always schedule the connection at the maximum offset.
+                System.Fakes.ShimRandom.AllInstances.NextInt32Int32 = (@this, min, max) => max;
+
+                // Make connection fail once so it will be rescheduled for 5 minutes.
+                _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device", DeviceSubscriptionType.C2DMessages) }));
+                var subscriptionCallbackFactory = new SubscriptionCallbackFactory(LogManager.GetCurrentClassLogger(), _httpClientFactoryMock.Object);
+                var subscriptionScheduler = new SubscriptionScheduler(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, subscriptionCallbackFactory, 2, 10);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+                _connectionManagerMock.Setup(p => p.AssertDeviceConnectionOpenAsync("test-device", false, null)).Returns(Task.FromException(new Exception("Open failed")));
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Attempt connections forwarding the clock 4 and 5 minutes, to make sure it only attempts to connect after 5 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(4);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(5);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Second failure should back off 10 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(9);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(10);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Third failure should back off 15 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(14);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(15);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Fourth failure should back off 20 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(19);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(20);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Fifth failure should back off 25 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(24);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(25);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Sixth failure should back off 30 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(29);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(30);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // All subsequent failures should back off 30 minutes.
+                TestUtils.ShimUtcNowAheadOnceAndRevert(29);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAheadOnceAndRevert(30);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+            }
+        }
+
+        [Test]
+        [Description("AttemptDeviceConnection clears _consecutiveConnectionFailures on successful connection")]
+        public async Task AttemptDeviceConnectionClearsConsecutiveFailuresOnSuccess()
+        {
+            using (ShimsContext.Create())
+            {
+                // Make random(min, max) always return max so we always schedule the connection at the maximum offset.
+                System.Fakes.ShimRandom.AllInstances.NextInt32Int32 = (@this, min, max) => max;
+
+                // Make connection fail once so it will be rescheduled for 5 minutes.
+                _storageProviderMock.Setup(p => p.ListAllSubscriptionsOrderedByDeviceId(It.IsAny<Logger>())).Returns(Task.FromResult(new List<DeviceSubscription>() { }));
+                _storageProviderMock.Setup(p => p.ListDeviceSubscriptions(It.IsAny<Logger>(), "test-device")).Returns(Task.FromResult(new List<DeviceSubscription>() { TestUtils.GetTestSubscription("test-device", DeviceSubscriptionType.C2DMessages) }));
+                var subscriptionCallbackFactory = new SubscriptionCallbackFactory(LogManager.GetCurrentClassLogger(), _httpClientFactoryMock.Object);
+                var subscriptionScheduler = new SubscriptionScheduler(LogManager.GetCurrentClassLogger(), _connectionManagerMock.Object, _storageProviderMock.Object, subscriptionCallbackFactory, 2, 10);
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+                _connectionManagerMock.Setup(p => p.AssertDeviceConnectionOpenAsync("test-device", false, null)).Returns(Task.FromException(new Exception("Open failed")));
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Attempt connections forwarding the clock 4 and 5 minutes, to make sure it only attempts to connect after 5 minutes (making the connection succeed).
+                TestUtils.ShimUtcNowAhead(4);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                _connectionManagerMock.Setup(p => p.AssertDeviceConnectionOpenAsync("test-device", false, null)).Returns(Task.CompletedTask);
+                TestUtils.ShimUtcNowAhead(5);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Make the connection fail again so it's rescheduled.
+                TestUtils.UnshimUtcNow();
+                await subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync("test-device", false);
+                _connectionManagerMock.Setup(p => p.AssertDeviceConnectionOpenAsync("test-device", false, null)).Returns(Task.FromException(new Exception("Open failed")));
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+
+                // Check that the connection was rescheduled for 5 minutes and not 10, as the previous successful connection cleared the consecutive failed attempt count.
+                TestUtils.ShimUtcNowAhead(4);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 0, 10);
+                TestUtils.ShimUtcNowAhead(5);
+                await RunSchedulerOnceAndWaitConnectionAttempts(subscriptionScheduler, 1, 10);
+            }
+        }
+
+        // Constructor calls SetGlobalConnectionStatusCallback
+        // GetRetryGlobalConnectionStatusChangeCallback does nothing if state is not failed
+        // GetRetryGlobalConnectionStatusChangeCallback does nothing if device doesn't have a data subscription
+        // GetRetryGlobalConnectionStatusChangeCallback locks on the same semaphore as sync
+        // GetRetryGlobalConnectionStatusChangeCallback does nothing if state is no longer failed after semaphore unlocks
+        // GetRetryGlobalConnectionStatusChangeCallback does nothing if device already has a scheduled connection
+        // GetRetryGlobalConnectionStatusChangeCallback schedules a reconnection right away
+
+        [Test]
         [Description("Checks that the status of a data subscription is correctly computed from the current device client status")]
         public async Task DataSubscriptionStatus()
         {
@@ -272,7 +455,7 @@ namespace DeviceBridge.Services.Tests
         /// Runs the connection scheduler once and wait for all connection attempts to finish.
         /// </summary>
         /// <remarks>Must be used within a ShimsContext.</remarks>
-        private static async Task RunSchedulerOnceAndWaitConnectionAttempts(SubscriptionScheduler subscriptionScheduler)
+        private static async Task RunSchedulerOnceAndWaitConnectionAttempts(SubscriptionScheduler subscriptionScheduler, int? taskCountToAssert = null, int? delayToAssert = null)
         {
             var connectionAttempTasks = new List<Task>();
             System.Threading.Tasks.Fakes.ShimTask.AllInstances.ContinueWithActionOfTaskTaskContinuationOptions = (task, action, options) =>
@@ -284,6 +467,16 @@ namespace DeviceBridge.Services.Tests
             // Stop the subscription scheduler at the first call to 'Delay' and capture the connection attempt tasks initialized by the scheduler.
             System.Threading.Tasks.Fakes.ShimTask.DelayInt32 = delay =>
             {
+                if (delayToAssert.HasValue)
+                {
+                    Assert.AreEqual(delayToAssert.Value, delay);
+                }
+
+                if (taskCountToAssert.HasValue)
+                {
+                    Assert.AreEqual(taskCountToAssert.Value, connectionAttempTasks.Count);
+                }
+
                 return Task.FromException(new Exception("Cancelled at delay"));
             };
 

@@ -33,5 +33,38 @@ namespace DeviceBridgeTests.Common
                 CreatedAt = DateTime.Now,
             };
         }
+
+        /// <summary>
+        /// Shims UtcNow to return a specific number of minutes into the future.
+        /// </summary>
+        /// <remarks>Must be used within a ShimsContext.</remarks>
+        /// <param name="minutes">How much to move the original time ahead.</param>
+        public static void ShimUtcNowAhead(int minutes)
+        {
+            System.Fakes.ShimDateTimeOffset.UtcNowGet = () => ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow).AddMinutes(minutes);
+        }
+
+        /// <summary>
+        /// Shims UtcNow to return a specific number of minutes into the future once, then revert the shim.
+        /// </summary>
+        /// <remarks>Must be used within a ShimsContext.</remarks>
+        /// <param name="minutes">How much to move the original time ahead.</param>
+        public static void ShimUtcNowAheadOnceAndRevert(int minutes)
+        {
+            System.Fakes.ShimDateTimeOffset.UtcNowGet = () =>
+            {
+                UnshimUtcNow();
+                return ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow).AddMinutes(minutes);
+            };
+        }
+
+        /// <summary>
+        /// Reverts UtcNow to its original behavior.
+        /// </summary>
+        /// <remarks>Must be used within a ShimsContext.</remarks>
+        public static void UnshimUtcNow()
+        {
+            System.Fakes.ShimDateTimeOffset.UtcNowGet = () => ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow);
+        }
     }
 }
