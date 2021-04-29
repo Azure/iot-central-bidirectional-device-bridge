@@ -246,11 +246,11 @@
                                     "value": "50"
                                 },
                                 {
-                                    "name": "DEVICE_RAMPUP_BATCH_SIZE",
+                                    "name": "DEVICE_CONNECTION_BATCH_SIZE",
                                     "value": "150"
                                 },
                                 {
-                                    "name": "DEVICE_RAMPUP_BATCH_INTERVAL_MS",
+                                    "name": "DEVICE_CONNECTION_BATCH_INTERVAL_MS",
                                     "value": "1000"
                                 },
                                 {

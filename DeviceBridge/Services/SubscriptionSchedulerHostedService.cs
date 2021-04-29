@@ -8,14 +8,14 @@ using NLog;
 namespace DeviceBridge.Services
 {
     /// <summary>
-    /// When the application starts, initialize all device subscriptions that we have in the DB.
+    /// When the application starts, start the subscription scheduler task.
     /// </summary>
-    public class SubscriptionStartupHostedService : IHostedService
+    public class SubscriptionSchedulerHostedService : IHostedService
     {
         private readonly Logger _logger;
         private readonly ISubscriptionScheduler _subscriptionScheduler;
 
-        public SubscriptionStartupHostedService(Logger logger, ISubscriptionScheduler subscriptionScheduler)
+        public SubscriptionSchedulerHostedService(Logger logger, ISubscriptionScheduler subscriptionScheduler)
         {
             _logger = logger;
             _subscriptionScheduler = subscriptionScheduler;
@@ -23,7 +23,7 @@ namespace DeviceBridge.Services
 
         public Task StartAsync(CancellationToken cancellationToken)
         {
-            var _ = _subscriptionScheduler.StartDataSubscriptionsInitializationAsync().ContinueWith(t => _logger.Error(t.Exception, "Failed to start subscription initialization task"), TaskContinuationOptions.OnlyOnFaulted);
+            var _ = _subscriptionScheduler.StartSubscriptionSchedulerAsync().ContinueWith(t => _logger.Error(t.Exception, "Failed to start subscription scheduler task"), TaskContinuationOptions.OnlyOnFaulted);
             return Task.CompletedTask;
         }
 

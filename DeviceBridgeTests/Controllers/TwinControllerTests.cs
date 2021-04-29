@@ -18,7 +18,7 @@ namespace DeviceBridge.Controllers.Tests
     {
         private const string MockDeviceId = "test-device";
         private const string PropertyCallbackUrl = "mock-callback-url";
-        private Mock<ISubscriptionService> _subscriptionServiceMock;
+        private Mock<IDataSubscriptionService> _dataSubscriptionServiceMock;
         private Mock<IBridgeService> _bridgeServiceMock;
         private TwinController _twinController;
         private DeviceSubscriptionWithStatus _deviceSubscriptionWithStatus;
@@ -26,14 +26,14 @@ namespace DeviceBridge.Controllers.Tests
         [SetUp]
         public void Setup()
         {
-            _subscriptionServiceMock = new Mock<ISubscriptionService>();
+            _dataSubscriptionServiceMock = new Mock<IDataSubscriptionService>();
             _bridgeServiceMock = new Mock<IBridgeService>();
-            _twinController = new TwinController(LogManager.GetCurrentClassLogger(), _subscriptionServiceMock.Object, _bridgeServiceMock.Object);
+            _twinController = new TwinController(LogManager.GetCurrentClassLogger(), _dataSubscriptionServiceMock.Object, _bridgeServiceMock.Object);
 
             var deviceSubscription = new DeviceSubscription();
             _deviceSubscriptionWithStatus = new DeviceSubscriptionWithStatus(deviceSubscription);
-            _subscriptionServiceMock.Setup(s => s.GetDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_deviceSubscriptionWithStatus));
-            _subscriptionServiceMock.Setup(s => s.CreateOrUpdateDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, PropertyCallbackUrl, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_deviceSubscriptionWithStatus));
+            _dataSubscriptionServiceMock.Setup(s => s.GetDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_deviceSubscriptionWithStatus));
+            _dataSubscriptionServiceMock.Setup(s => s.CreateOrUpdateDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, PropertyCallbackUrl, It.IsAny<CancellationToken>())).Returns(Task.FromResult(_deviceSubscriptionWithStatus));
         }
 
         [Test]
@@ -65,16 +65,16 @@ namespace DeviceBridge.Controllers.Tests
         }
 
         [Test]
-        [Description("Test to ensure GetDesiredPropertiesSubscription calls SubscriptionService.GetDataSubscription and the value is returned.")]
+        [Description("Test to ensure GetDesiredPropertiesSubscription calls DataSubscriptionService.GetDataSubscription and the value is returned.")]
         public async Task TestGetDesiredPropertiesSubscription()
         {
             var propertySubscription = await _twinController.GetDesiredPropertiesSubscription(MockDeviceId);
-            _subscriptionServiceMock.Verify(p => p.GetDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, It.IsAny<CancellationToken>()));
+            _dataSubscriptionServiceMock.Verify(p => p.GetDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, It.IsAny<CancellationToken>()));
             Assert.AreEqual(_deviceSubscriptionWithStatus, propertySubscription.Value);
         }
 
         [Test]
-        [Description("Test to ensure that CreateOrUpdateDesiredPropertiesSubscription calls SubscriptionService.CreateOrUpdateSubscription and the value is returned.")]
+        [Description("Test to ensure that CreateOrUpdateDesiredPropertiesSubscription calls DataSubscriptionService.CreateOrUpdateSubscription and the value is returned.")]
         public async Task TestCreateOrUpdateDesiredPropertiesSubscription()
         {
             var body = new SubscriptionCreateOrUpdateBody()
@@ -83,16 +83,16 @@ namespace DeviceBridge.Controllers.Tests
             };
 
             var propertySubscription = await _twinController.CreateOrUpdateDesiredPropertiesSubscription(MockDeviceId, body);
-            _subscriptionServiceMock.Verify(p => p.CreateOrUpdateDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, body.CallbackUrl, It.IsAny<CancellationToken>()));
+            _dataSubscriptionServiceMock.Verify(p => p.CreateOrUpdateDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, body.CallbackUrl, It.IsAny<CancellationToken>()));
             Assert.AreEqual(_deviceSubscriptionWithStatus, propertySubscription.Value);
         }
 
         [Test]
-        [Description("Test to ensure that DeleteDesiredPropertiesSubscription calls SubscriptionService.DeleteDataSubscription.")]
+        [Description("Test to ensure that DeleteDesiredPropertiesSubscription calls DataSubscriptionService.DeleteDataSubscription.")]
         public async Task TestDeleteDesiredPropertiesSubscription()
         {
             await _twinController.DeleteDesiredPropertiesSubscription(MockDeviceId);
-            _subscriptionServiceMock.Verify(p => p.DeleteDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, It.IsAny<CancellationToken>()));
+            _dataSubscriptionServiceMock.Verify(p => p.DeleteDataSubscription(It.IsAny<Logger>(), MockDeviceId, DeviceSubscriptionType.DesiredProperties, It.IsAny<CancellationToken>()));
         }
     }
 }
