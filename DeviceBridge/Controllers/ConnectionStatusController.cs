@@ -14,13 +14,13 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class ConnectionStatusController : BaseController
     {
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly IConnectionStatusSubscriptionService _connectionStatusSubscriptionService;
         private readonly IConnectionManager _connectionManager;
 
-        public ConnectionStatusController(Logger logger, ISubscriptionService subscriptionService, IConnectionManager connectionManager)
+        public ConnectionStatusController(Logger logger, IConnectionStatusSubscriptionService connectionStatusSubscriptionService, IConnectionManager connectionManager)
             : base(logger)
         {
-            _subscriptionService = subscriptionService;
+            _connectionStatusSubscriptionService = connectionStatusSubscriptionService;
             _connectionManager = connectionManager;
         }
 
@@ -59,7 +59,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscription>> GetConnectionStatusSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.GetConnectionStatusSubscription(Logger, deviceId, cancellationToken);
+            return await _connectionStatusSubscriptionService.GetConnectionStatusSubscription(Logger, deviceId, cancellationToken);
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscription>> CreateOrUpdateConnectionStatusSubscription(string deviceId, SubscriptionCreateOrUpdateBody body, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.CreateOrUpdateConnectionStatusSubscription(Logger, deviceId, body.CallbackUrl, cancellationToken);
+            return await _connectionStatusSubscriptionService.CreateOrUpdateConnectionStatusSubscription(Logger, deviceId, body.CallbackUrl, cancellationToken);
         }
 
         /// <summary>
@@ -97,7 +97,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<ActionResult> DeleteConnectionStatusSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            await _subscriptionService.DeleteConnectionStatusSubscription(Logger, deviceId, cancellationToken);
+            await _connectionStatusSubscriptionService.DeleteConnectionStatusSubscription(Logger, deviceId, cancellationToken);
             return NoContent();
         }
     }

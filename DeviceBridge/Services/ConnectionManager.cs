@@ -4,7 +4,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -45,6 +44,12 @@ namespace DeviceBridge.Services
 
         private const string GlobalDeviceEndpoint = "global.azure-devices-provisioning.net";
 
+        // Device client retry options - 36 retries over ~5 minutes for transient errors.
+        private const int ClientRetryCount = 36;
+        private const double ClientRetryMinBackoffMs = 100;
+        private const double ClientRetryMaxBackoffSec = 10;
+        private const double ClientRetryDeltaBackoffMs = 100;
+
         private readonly string _idScope;
         private readonly string _sasKey;
         private readonly uint _maxPoolSize;
@@ -64,10 +69,11 @@ namespace DeviceBridge.Services
         private ConcurrentDictionary<string, Func<ConnectionStatus, ConnectionStatusChangeReason, Task>> _connectionStatusCallbacks = new ConcurrentDictionary<string, Func<ConnectionStatus, ConnectionStatusChangeReason, Task>>();
 
         private ConcurrentDictionary<string, string> _deviceHubs = new ConcurrentDictionary<string, string>();
-        private ConcurrentDictionary<string, byte> _distinctKnownHubs = new ConcurrentDictionary<string, byte>(); // NOTE: used as workaround for absence of a ConcurrentHashSet (as recommended)
 
         private ConcurrentDictionary<string, long> _hasTemporaryConnectionUntil = new ConcurrentDictionary<string, long>(); // Timestamp representing until when a temporary device connection should be kept alive
         private ConcurrentDictionary<string, bool> _hasPermanentConnection = new ConcurrentDictionary<string, bool>(); // Indicates if a permanent connection is open for a device
+
+        private Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> _globalConnectionStatusChangeHandler;
 
         public ConnectionManager(Logger logger, string idScope, string sasKey, uint maxPoolSize, IStorageProvider storageProvider)
         {
@@ -80,8 +86,6 @@ namespace DeviceBridge.Services
             // Initialize the in-memory Hub cache and the list of all known hubs with DB data before the service starts.
             var dbHubCacheEntries = storageProvider.ListHubCacheEntries(_logger).Result;
             _deviceHubs = new ConcurrentDictionary<string, string>(dbHubCacheEntries.Select(e => new KeyValuePair<string, string>(e.DeviceId, e.Hub)));
-            _distinctKnownHubs = new ConcurrentDictionary<string, byte>(dbHubCacheEntries.Select(e => e.Hub).Distinct().Select(hub => new KeyValuePair<string, byte>(hub, 0 /* placeholder */)));
-            _logger.Info("Loaded {hubCount} distinct Hubs from cache", _distinctKnownHubs.Count);
         }
 
         /// <summary>
@@ -95,7 +99,6 @@ namespace DeviceBridge.Services
             {
                 try
                 {
-                    _logger.Info("Performing expired connection cleanup");
                     var currentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
 
                     foreach (var entry in _hasTemporaryConnectionUntil)
@@ -112,7 +115,6 @@ namespace DeviceBridge.Services
                 }
 
                 // Trigger the next execution
-                _logger.Info("Finished expired connection cleanup. Scheduling next execution");
                 await Task.Delay(ExpiredConnectionCleanupIntervalMs);
             }
         }
@@ -159,9 +161,8 @@ namespace DeviceBridge.Services
         /// </summary>
         /// <param name="deviceId">Id of the device to open a connection for.</param>
         /// <param name="temporary">Whether the requested connection is temporary or permanent.</param>
-        /// <param name="recreateFailedClient">Forces the recreation of the current client if it's in a permanent failure state (i.e., the SDK will not retry).</param>
         /// <param name="cancellationToken">Optional cancellation token.</param>
-        public async Task AssertDeviceConnectionOpenAsync(string deviceId, bool temporary = false, bool recreateFailedClient = false, CancellationToken? cancellationToken = null)
+        public async Task AssertDeviceConnectionOpenAsync(string deviceId, bool temporary = false, CancellationToken? cancellationToken = null)
         {
             _logger.Info("Attempting to initialize {connectionType} connection for device {deviceId}", temporary ? "Temporary" : "Permanent", deviceId);
             _lastConnectionAttempt.AddOrUpdate(deviceId, DateTime.Now, (key, oldValue) => DateTime.Now);
@@ -186,25 +187,18 @@ namespace DeviceBridge.Services
                     _hasPermanentConnection.AddOrUpdate(deviceId, true, (key, oldValue) => true);
                 }
 
-                // If desired, force the disposal of the current client if it is in a permanent failure state.
-                if (recreateFailedClient)
+                // Dispose the current client if it is in a permanent failure state.
+                if (_clientStatuses.TryGetValue(deviceId, out (ConnectionStatus status, ConnectionStatusChangeReason reason) currentStatus))
                 {
-                    if (_clientStatuses.TryGetValue(deviceId, out (ConnectionStatus status, ConnectionStatusChangeReason reason) currentStatus))
-                    {
-                        // Permanent failure states taken from https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Samples/device/DeviceReconnectionSample
-                        bool isFailed = currentStatus.status == ConnectionStatus.Disconnected &&
-                            (currentStatus.reason == ConnectionStatusChangeReason.Device_Disabled ||
-                            currentStatus.reason == ConnectionStatusChangeReason.Bad_Credential ||
-                            currentStatus.reason == ConnectionStatusChangeReason.Communication_Error ||
-                            currentStatus.reason == ConnectionStatusChangeReason.Retry_Expired);
+                    // Permanent failure state, taken from https://github.com/Azure-Samples/azure-iot-samples-csharp/tree/master/iot-hub/Samples/device/DeviceReconnectionSample
+                    bool isFailed = currentStatus.status == ConnectionStatus.Disconnected;
 
-                        if (isFailed && _clients.TryRemove(deviceId, out DeviceClient existingClient))
-                        {
-                            _logger.Info("Disposing existing failed client for device {deviceId}", deviceId);
-                            await existingClient.CloseAsync();
-                            existingClient.Dispose();
-                            existingClient.SetConnectionStatusChangesHandler(null);
-                        }
+                    if (isFailed && _clients.TryRemove(deviceId, out DeviceClient existingClient))
+                    {
+                        _logger.Info("Disposing existing failed client for device {deviceId}", deviceId);
+                        await existingClient.CloseAsync();
+                        existingClient.Dispose();
+                        existingClient.SetConnectionStatusChangesHandler(null);
                     }
                 }
 
@@ -216,7 +210,7 @@ namespace DeviceBridge.Services
 
                 var deviceKey = ComputeDerivedSymmetricKey(Convert.FromBase64String(_sasKey), deviceId);
 
-                // If we already know this device's hub, attempt to connect to it first. Trying the remaining hubs on a failure handles the case where a device is moved.
+                // If we already know this device's hub, attempt to connect to it first.
                 if (_deviceHubs.TryGetValue(deviceId, out string knownDeviceHub))
                 {
                     try
@@ -225,44 +219,16 @@ namespace DeviceBridge.Services
                         _clients.AddOrUpdate(deviceId, client, (key, oldValue) => client);
                         return;
                     }
-                    catch (Exception e) when (ShouldTryNextHub(e))
+                    catch (Exception e)
                     {
-                        _logger.Error(e, "Failed to connect device {deviceId} to it's old hub ({knownDeviceHub}). Trying other known hubs.", deviceId, knownDeviceHub);
+                        _logger.Error(e, "Failed to connect device {deviceId} to it's old hub ({knownDeviceHub}). Will try DPS registration again.", deviceId, knownDeviceHub);
                     }
                 }
 
-                // Attempt to create the client against each of the hubs that we know, until one works (reduces the load on DPS registrations).
-                foreach (var candidateHub in _distinctKnownHubs.Keys)
-                {
-                    try
-                    {
-                        var client = await BuildAndOpenClient(_logger, candidateHub, deviceKey, cancellationToken);
-                        _clients.AddOrUpdate(deviceId, client, (key, oldValue) => client);
-                        _deviceHubs.AddOrUpdate(deviceId, candidateHub, (key, oldValue) => candidateHub);
-
-                        try
-                        {
-                            await _storageProvider.AddOrUpdateHubCacheEntry(_logger, deviceId, candidateHub);
-                        }
-                        catch (Exception e)
-                        {
-                            // Storing the hub is a best-effort operation.
-                            _logger.Error(e, "Failed to update Hub cache for device {deviceId}", deviceId);
-                        }
-
-                        return;
-                    }
-                    catch (Exception e) when (ShouldTryNextHub(e))
-                    {
-                        _logger.Error(e, "Failed to connect device {deviceId} to hub {candidateHub}. Trying next known hub.", deviceId, candidateHub);
-                    }
-                }
-
-                // If none of the known hubs worked, try DPS registration.
+                // If connecting to the cached Hub failed, try DPS registration.
                 {
                     var deviceHub = await DpsRegisterInternalAsync(_logger, deviceId, deviceKey, null, cancellationToken);
                     _deviceHubs.AddOrUpdate(deviceId, deviceHub, (key, oldValue) => deviceHub);
-                    _distinctKnownHubs.TryAdd(deviceHub, 0 /* placeholder */);
 
                     try
                     {
@@ -305,7 +271,7 @@ namespace DeviceBridge.Services
                     var connString = GetDeviceConnectionString(deviceId, candidateHub, deviceKey);
                     client = DeviceClient.CreateFromConnectionString(connString, settings);
                     client.SetConnectionStatusChangesHandler(BuildConnectionStatusChangeHandler(deviceId));
-                    client.SetRetryPolicy(new CustomDeviceClientRetryPolicy());
+                    client.SetRetryPolicy(new ExponentialBackoff(ClientRetryCount, TimeSpan.FromMilliseconds(ClientRetryMinBackoffMs), TimeSpan.FromSeconds(ClientRetryMaxBackoffSec), TimeSpan.FromMilliseconds(ClientRetryDeltaBackoffMs)));
 
                     // If a desired property callback exists, register it.
                     if (_desiredPropertyUpdateCallbacks.TryGetValue(deviceId, out var desiredPropertyUpdateCallback))
@@ -344,32 +310,6 @@ namespace DeviceBridge.Services
                     client?.SetConnectionStatusChangesHandler(null);
                     throw e;
                 }
-            }
-
-            /* Returns true if the exception represents any of the following:
-             * - the hub doesn't exist
-             * - the device doesn't exist in the hub
-             * - the device isn't authorized.
-             * Returns false otherwise.
-             */
-            bool ShouldTryNextHub(Exception e)
-            {
-                if (e is DeviceNotFoundException || e.InnerException is DeviceNotFoundException)
-                {
-                    return true;
-                }
-
-                if (e is UnauthorizedException || e.InnerException is UnauthorizedException)
-                {
-                    return true;
-                }
-
-                if ((e.InnerException as SocketException)?.SocketErrorCode == SocketError.HostNotFound)
-                {
-                    return true;
-                }
-
-                return false;
             }
         }
 
@@ -461,7 +401,6 @@ namespace DeviceBridge.Services
 
             // Cache this hub for later use.
             _deviceHubs.AddOrUpdate(deviceId, deviceHub, (key, oldValue) => deviceHub);
-            _distinctKnownHubs.TryAdd(deviceHub, 0 /* placeholder */);
 
             try
             {
@@ -872,6 +811,16 @@ namespace DeviceBridge.Services
         }
 
         /// <summary>
+        /// Sets the global connection status change handler.
+        /// </summary>
+        /// <param name="callback">Callback to be called when the status of a device connection changes.</param>
+        public void SetGlobalConnectionStatusCallback(Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> callback)
+        {
+            _logger.Info("Setting global connection status handler");
+            _globalConnectionStatusChangeHandler = callback;
+        }
+
+        /// <summary>
         /// Sets the connection status change handler for a device.
         /// </summary>
         /// <param name="deviceId">Id of the device to set the callback for.</param>
@@ -983,13 +932,16 @@ namespace DeviceBridge.Services
                 _logger.Info("Connection status of device {deviceId} changed: status = {status}, reason = {reason}", deviceId, status, reason);
                 _clientStatuses.AddOrUpdate(deviceId, (status, reason), (key, oldValue) => (status, reason));
 
-                // Don't warn the user about failures while we're still figuring out which hub this device belongs to.
-                bool isHubProbing = (status == ConnectionStatus.Disconnected || status == ConnectionStatus.Disabled) && !_deviceHubs.TryGetValue(deviceId, out _);
-
                 // If a custom callback exists, call it asynchronously.
-                if (_connectionStatusCallbacks.TryGetValue(deviceId, out var statusCallback) && !isHubProbing)
+                if (_connectionStatusCallbacks.TryGetValue(deviceId, out var statusCallback))
                 {
                     var _ = statusCallback(status, reason).ContinueWith(t => _logger.Error(t.Exception, "Failed to execute custom connection status callback for device {deviceId}", deviceId), TaskContinuationOptions.OnlyOnFaulted);
+                }
+
+                // Execute the global status change handler if one was defined.
+                if (_globalConnectionStatusChangeHandler != null)
+                {
+                    var _ = _globalConnectionStatusChangeHandler(deviceId, status, reason).ContinueWith(t => _logger.Error(t.Exception, "Failed to execute global connection status callback for device {deviceId}", deviceId), TaskContinuationOptions.OnlyOnFaulted);
                 }
             };
         }

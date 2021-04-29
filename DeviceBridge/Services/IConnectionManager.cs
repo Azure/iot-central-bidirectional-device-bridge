@@ -15,7 +15,7 @@ namespace DeviceBridge.Services
     {
         Task AssertDeviceConnectionClosedAsync(string deviceId, bool temporary = false);
 
-        Task AssertDeviceConnectionOpenAsync(string deviceId, bool temporary = false, bool recreateFailedClient = false, CancellationToken? cancellationToken = null);
+        Task AssertDeviceConnectionOpenAsync(string deviceId, bool temporary = false, CancellationToken? cancellationToken = null);
 
         void Dispose();
 
@@ -40,6 +40,8 @@ namespace DeviceBridge.Services
         Task RemoveMethodCallbackAsync(string deviceId);
 
         Task SendEventAsync(Logger logger, string deviceId, IDictionary<string, object> payload, CancellationToken cancellationToken, IDictionary<string, string> properties = null, string componentName = null, DateTime? creationTimeUtc = null);
+
+        void SetGlobalConnectionStatusCallback(Func<string, ConnectionStatus, ConnectionStatusChangeReason, Task> callback);
 
         void SetConnectionStatusCallback(string deviceId, Func<ConnectionStatus, ConnectionStatusChangeReason, Task> callback);
 

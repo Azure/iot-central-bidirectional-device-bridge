@@ -93,7 +93,7 @@ namespace DeviceBridge.Services.Tests
                 // If temporary is set to true, creates a temporary connection if one doesn't exist, without creating a permanent connection.
                 closeCount = 0;
                 await connectionManager.AssertDeviceConnectionOpenAsync("temporary-device-id", true);
-                ShimUtcNowAhead(20); // Move the clock so the temporary connection will expire.
+                TestUtils.ShimUtcNowAhead(20); // Move the clock so the temporary connection will expire.
                 await connectionManager.AssertDeviceConnectionClosedAsync("temporary-device-id");
                 Assert.AreEqual(0, closeCount, "Closing a permanent connection should not have closed a temporary connection");
                 await connectionManager.AssertDeviceConnectionClosedAsync("temporary-device-id", true);
@@ -101,14 +101,14 @@ namespace DeviceBridge.Services.Tests
 
                 // If temporary is set to true, renews a temporary connection if one already exists, without creating a permanent connection.
                 closeCount = 0;
-                UnshimUtcNow();
+                TestUtils.UnshimUtcNow();
                 await connectionManager.AssertDeviceConnectionOpenAsync("renew-device-id", true); // Create initial ~10min connection.
-                ShimUtcNowAhead(5);
+                TestUtils.ShimUtcNowAhead(5);
                 await connectionManager.AssertDeviceConnectionOpenAsync("renew-device-id", true); // Move the clock 5min and renew connection for another ~10min, so total connection duration is ~15min.
-                ShimUtcNowAhead(12);
+                TestUtils.ShimUtcNowAhead(12);
                 await connectionManager.AssertDeviceConnectionClosedAsync("renew-device-id", true);
                 Assert.AreEqual(0, closeCount, "Temporary connection should not have been closed after 12min, as it was renewed for ~15min");
-                ShimUtcNowAhead(18);
+                TestUtils.ShimUtcNowAhead(18);
                 await connectionManager.AssertDeviceConnectionClosedAsync("renew-device-id", true);
                 Assert.AreEqual(1, closeCount, "Temporary connection should have been closed after 18min.");
             }
@@ -127,14 +127,9 @@ namespace DeviceBridge.Services.Tests
                 ShimDeviceClientAndEmitStatus(ConnectionStatus.Disconnected, ConnectionStatusChangeReason.Retry_Expired);
                 await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id");
 
-                // If recreateFailedClient is set to false (default), don't try to recreate a client in a permanent failure state
+                // Check that it tries to recreate a client in a permanent failure state
                 ShimDeviceClientAndCaptureClose(() => closeCount++);
                 await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id");
-                Assert.AreEqual(0, closeCount);
-
-                // If recreateFailedClient is set to true, tries to recreate a client in a permanent failure state
-                ShimDeviceClientAndCaptureClose(() => closeCount++);
-                await connectionManager.AssertDeviceConnectionOpenAsync("recreate-failed-device-id", false, true);
                 Assert.AreEqual(1, closeCount);
             }
         }
@@ -174,72 +169,11 @@ namespace DeviceBridge.Services.Tests
                 await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
                 Assert.True(registrationAttempted);
 
-                // Check that DPS registration is not attempted if connection attempt fails with unknown error.
+                // Check that DPS registration is attempted if connection attempt fails with unknown error.
                 registrationAttempted = false;
                 ShimDeviceClientToFail(new Exception());
                 await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
-                Assert.False(registrationAttempted);
-            }
-        }
-
-        [Test]
-        public async Task AssertDeviceConnectionOpenAsyncTriesAllKnownHubs()
-        {
-            using (ShimsContext.Create())
-            {
-                var hubCache = new List<HubCacheEntry>()
-                {
-                    new HubCacheEntry()
-                    {
-                        DeviceId = "another-device-id-1",
-                        Hub = "known-hub-1.azure.devices.net",
-                    },
-                    new HubCacheEntry()
-                    {
-                        DeviceId = "another-device-id-2",
-                        Hub = "known-hub-2.azure.devices.net",
-                    },
-                };
-                var connectionManager = CreateConnectionManager(hubCache);
-                _storageProviderMock.Invocations.Clear();
-
-                // Check that it Attempts to connect to a known hub, even if it the device Id doesn't match.
-                string connStr = null;
-                ShimDeviceClientAndCaptureConnectionString(capturedConnStr => connStr = capturedConnStr);
-                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                Assert.True(connStr.Contains("known-hub-1.azure.devices.net") || connStr.Contains("known-hub-2.azure.devices.net"));
-
-                // Check that hub was cached in the DB.
-                _storageProviderMock.Verify(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), "test-device-id", It.IsIn(new string[] { "known-hub-1.azure.devices.net", "known-hub-2.azure.devices.net" })), Times.Once);
-
-                // Checks that failure to save hub in DB cache doesn't fail the open operation.
-                connectionManager = CreateConnectionManager(hubCache);
-                _storageProviderMock.Setup(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), It.IsAny<string>(), It.IsAny<string>())).Throws(new Exception());
-                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                _storageProviderMock.Setup(p => p.AddOrUpdateHubCacheEntry(It.IsAny<Logger>(), It.IsAny<string>(), It.IsAny<string>())).Verifiable();
-
-                // Check that the device client is cached and not reopened in subsequent calls.
-                bool openAttempted = false;
-                ShimDeviceClientAndCaptureOpen(() => openAttempted = true);
-                await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
-                Assert.False(openAttempted);
-
-                // Check that all hubs are tried and DPS registration is eventually attempted if connection
-                // error indicates that the device doesn't exist in the target hub.
-                connectionManager = CreateConnectionManager(hubCache);
-                var connStrs = new List<string>();
-                ShimDeviceClientToFailAndCaptureConnectionString(capturedConnStr => connStrs.Add(capturedConnStr), new DeviceNotFoundException());
-                var registrationAttempted = false;
-                ShimDpsAndCaptureRegistration("test-hub.azure.devices.net", () => registrationAttempted = true);
-                await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
-                Assert.True((connStrs.Find(s => s.Contains("known-hub-1.azure.devices.net")) != null) && (connStrs.Find(s => s.Contains("known-hub-2.azure.devices.net")) != null));
                 Assert.True(registrationAttempted);
-
-                // Check that DPS registration is not attempted if connection attempt fails with unknown error.
-                registrationAttempted = false;
-                ShimDeviceClientToFail(new Exception());
-                await ExpectToThrow(() => connectionManager.AssertDeviceConnectionOpenAsync("test-device-id"));
-                Assert.False(registrationAttempted);
             }
         }
 
@@ -304,10 +238,13 @@ namespace DeviceBridge.Services.Tests
                 // Sets connection status change handler that updates local device connection status and calls user-defined
                 // callback if one exists and we're not in hub-probing phase.
                 connectionManager = CreateConnectionManager();
+                var globalStatusCallbackCalled = false;
+                connectionManager.SetGlobalConnectionStatusCallback((_, __, ___) => Task.FromResult(globalStatusCallbackCalled = true));
                 var statusCallbackCalled = false;
                 connectionManager.SetConnectionStatusCallback("test-device-id", (_, __) => Task.FromResult(statusCallbackCalled = true));
                 ShimDeviceClientAndEmitStatus(ConnectionStatus.Connected, ConnectionStatusChangeReason.Connection_Ok);
                 await connectionManager.AssertDeviceConnectionOpenAsync("test-device-id");
+                Assert.True(globalStatusCallbackCalled);
                 Assert.True(statusCallbackCalled);
                 var status = connectionManager.GetDeviceStatus("test-device-id");
                 Assert.AreEqual(ConnectionStatus.Connected, status?.status);
@@ -819,25 +756,6 @@ namespace DeviceBridge.Services.Tests
                     Assert.Fail("Exception didn't match test");
                 }
             }
-        }
-
-        /// <summary>
-        /// Shims UtcNow to return a specific number of minutes into the future.
-        /// </summary>
-        /// <remarks>Must be used within a ShimsContext.</remarks>
-        /// <param name="minutes">How much to move the original time ahead.</param>
-        private static void ShimUtcNowAhead(int minutes)
-        {
-            System.Fakes.ShimDateTimeOffset.UtcNowGet = () => ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow).AddMinutes(minutes);
-        }
-
-        /// <summary>
-        /// Reverts UtcNow to its original behavior.
-        /// </summary>
-        /// <remarks>Must be used within a ShimsContext.</remarks>
-        private static void UnshimUtcNow()
-        {
-            System.Fakes.ShimDateTimeOffset.UtcNowGet = () => ShimsContext.ExecuteWithoutShims(() => DateTimeOffset.UtcNow);
         }
     }
 }

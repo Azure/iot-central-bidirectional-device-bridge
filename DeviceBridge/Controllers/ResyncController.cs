@@ -10,12 +10,12 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class ResyncController : BaseController
     {
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly ISubscriptionScheduler _subscriptionScheduler;
 
-        public ResyncController(NLog.Logger logger, ISubscriptionService subscriptionService)
+        public ResyncController(NLog.Logger logger, ISubscriptionScheduler subscriptionScheduler)
             : base(logger)
         {
-            _subscriptionService = subscriptionService;
+            _subscriptionScheduler = subscriptionScheduler;
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status202Accepted)]
         public ActionResult Resync(string deviceId)
         {
-            var _ = _subscriptionService.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(deviceId, false /* fetch latest subscriptions from DB */, true /* retry failed connection */);
+            var _ = _subscriptionScheduler.SynchronizeDeviceDbAndEngineDataSubscriptionsAsync(deviceId);
             return Accepted();
         }
     }

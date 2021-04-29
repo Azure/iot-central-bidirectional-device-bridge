@@ -14,12 +14,12 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class MethodsController : BaseController
     {
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly IDataSubscriptionService _dataSubscriptionService;
 
-        public MethodsController(Logger logger, ISubscriptionService subscriptionService)
+        public MethodsController(Logger logger, IDataSubscriptionService dataSubscriptionService)
             : base(logger)
         {
-            _subscriptionService = subscriptionService;
+            _dataSubscriptionService = dataSubscriptionService;
         }
 
         /// <summary>
@@ -33,7 +33,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscriptionWithStatus>> GetMethodsSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.GetDataSubscription(Logger, deviceId, DeviceSubscriptionType.Methods, cancellationToken);
+            return await _dataSubscriptionService.GetDataSubscription(Logger, deviceId, DeviceSubscriptionType.Methods, cancellationToken);
         }
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscriptionWithStatus>> CreateOrUpdateMethodsSubscription(string deviceId, SubscriptionCreateOrUpdateBody body, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.CreateOrUpdateDataSubscription(Logger, deviceId, DeviceSubscriptionType.Methods, body.CallbackUrl, cancellationToken);
+            return await _dataSubscriptionService.CreateOrUpdateDataSubscription(Logger, deviceId, DeviceSubscriptionType.Methods, body.CallbackUrl, cancellationToken);
         }
 
         /// <summary>
@@ -78,7 +78,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<ActionResult> DeleteMethodsSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            await _subscriptionService.DeleteDataSubscription(Logger, deviceId, DeviceSubscriptionType.Methods, cancellationToken);
+            await _dataSubscriptionService.DeleteDataSubscription(Logger, deviceId, DeviceSubscriptionType.Methods, cancellationToken);
             return NoContent();
         }
     }

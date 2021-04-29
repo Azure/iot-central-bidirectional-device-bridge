@@ -17,13 +17,13 @@ namespace DeviceBridge.Controllers
     [ApiController]
     public class TwinController : BaseController
     {
-        private readonly ISubscriptionService _subscriptionService;
+        private readonly IDataSubscriptionService _dataSubscriptionService;
         private readonly IBridgeService _bridgeService;
 
-        public TwinController(Logger logger, ISubscriptionService subscriptionService, IBridgeService bridgeService)
+        public TwinController(Logger logger, IDataSubscriptionService dataSubscriptionService, IBridgeService bridgeService)
             : base(logger)
         {
-            _subscriptionService = subscriptionService;
+            _dataSubscriptionService = dataSubscriptionService;
             _bridgeService = bridgeService;
         }
 
@@ -80,7 +80,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscriptionWithStatus>> GetDesiredPropertiesSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.GetDataSubscription(Logger, deviceId, DeviceSubscriptionType.DesiredProperties, cancellationToken);
+            return await _dataSubscriptionService.GetDataSubscription(Logger, deviceId, DeviceSubscriptionType.DesiredProperties, cancellationToken);
         }
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<ActionResult<DeviceSubscriptionWithStatus>> CreateOrUpdateDesiredPropertiesSubscription(string deviceId, SubscriptionCreateOrUpdateBody body, CancellationToken cancellationToken = default)
         {
-            return await _subscriptionService.CreateOrUpdateDataSubscription(Logger, deviceId, DeviceSubscriptionType.DesiredProperties, body.CallbackUrl, cancellationToken);
+            return await _dataSubscriptionService.CreateOrUpdateDataSubscription(Logger, deviceId, DeviceSubscriptionType.DesiredProperties, body.CallbackUrl, cancellationToken);
         }
 
         /// <summary>
@@ -120,7 +120,7 @@ namespace DeviceBridge.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         public async Task<ActionResult> DeleteDesiredPropertiesSubscription(string deviceId, CancellationToken cancellationToken = default)
         {
-            await _subscriptionService.DeleteDataSubscription(Logger, deviceId, DeviceSubscriptionType.DesiredProperties, cancellationToken);
+            await _dataSubscriptionService.DeleteDataSubscription(Logger, deviceId, DeviceSubscriptionType.DesiredProperties, cancellationToken);
             return NoContent();
         }
     }
