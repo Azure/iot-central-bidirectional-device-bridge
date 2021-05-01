@@ -15,12 +15,12 @@ type Config struct {
 }
 
 type D2CMessage struct {
-	Path              string `json:"path"`      // Path filter for requests that will be routed to this transform
-	Transform         string `json:"transform"` // jq transform query
-	DeviceIdPathParam string `json:"deviceIdPathParam"`
-	DeviceIdBodyField string `json:"deviceIdBodyField"`
-	AuthHeader        string `json:"authHeader"`
-	AuthQueryParam    string `json:"authQueryParam"`
+	Path              string `json:"path"`              // Path filter for requests that will be routed to this transform
+	Transform         string `json:"transform"`         // jq transform query
+	DeviceIdPathParam string `json:"deviceIdPathParam"` // Path parameter containing device Id
+	DeviceIdBodyField string `json:"deviceIdBodyField"` // Body field containing device Id
+	AuthHeader        string `json:"authHeader"`        // Header containing auth key
+	AuthQueryParam    string `json:"authQueryParam"`    // Query parameter containing auth key
 }
 
 // Loads, parses, and validates an adapter config from a file.
