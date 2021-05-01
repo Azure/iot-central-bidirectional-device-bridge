@@ -1,0 +1,12 @@
+{
+    "d2cMessages": [{
+        "path": "/{id}/cde",
+        "deviceIdPathParam": "id",
+        "authHeader": "key"
+    }, {
+        "path": "/message",
+        "transform": "{ data: .dd,  properties, componentName, creationTimeUtc }",
+        "deviceIdBodyField": "Id",
+        "authQueryParam": "apk"
+    }]
+}
