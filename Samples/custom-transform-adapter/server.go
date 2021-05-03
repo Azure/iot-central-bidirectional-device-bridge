@@ -14,6 +14,7 @@ import (
 
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/Azure/go-autorest/autorest/date"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/iot-for-all/iotc-device-bridge/custom-transform-adapter/lib/bridge"
 	"github.com/mitchellh/mapstructure"
@@ -55,6 +56,13 @@ type Adapter struct {
 	Engine          *TransformEngine
 }
 
+// D2C message route definition augmented to include the Id of the cached transform queries.
+type AugmentedD2CMessage struct {
+	D2CMessage
+	TransformId         string
+	DeviceIdBodyQueryId string
+}
+
 // Builds a transform adapter for a given configuration.
 func NewAdapterFromConfig(config *Config, bridgeEndpoint string) *Adapter {
 	log.Info(fmt.Sprintf("Initializing adapter for Bridge %s", bridgeEndpoint))
@@ -69,17 +77,27 @@ func NewAdapterFromConfig(config *Config, bridgeEndpoint string) *Adapter {
 
 	for _, message := range config.D2CMessages {
 		log.Info(fmt.Sprintf("Initializing route %s", message.Path))
+		augmentedMessage := AugmentedD2CMessage{D2CMessage: message}
 
-		// Initialize the transform, using the path as Id.
+		// Initialize cache for request body transform.
 		if message.Transform != "" {
-			if err := adapter.Engine.AddTransform(message.Path, message.Transform); err != nil {
-				log.WithField("error", err).Panic(fmt.Sprintf("Failed to add transform for route %s: %s", message.Path, err))
+			augmentedMessage.TransformId = uuid.New().String()
+			if err := adapter.Engine.AddTransform(augmentedMessage.TransformId, message.Transform); err != nil {
+				log.WithField("error", err).Panic(fmt.Sprintf("Failed to add request body transform for route %s: %s", message.Path, err))
 			}
 		} else {
 			log.Warn(fmt.Sprintf("Empty transform. Route %s will be set as pass-through", message.Path))
 		}
 
-		handler := adapter.buildD2CMessageHandler(message)
+		// Initialize cache for device Id transform.
+		if message.DeviceIdBodyQuery != "" {
+			augmentedMessage.DeviceIdBodyQueryId = uuid.New().String()
+			if err := adapter.Engine.AddTransform(augmentedMessage.DeviceIdBodyQueryId, message.DeviceIdBodyQuery); err != nil {
+				log.WithField("error", err).Panic(fmt.Sprintf("Failed to add device Id query transform for route %s: %s", message.Path, err))
+			}
+		}
+
+		handler := adapter.buildD2CMessageHandler(augmentedMessage)
 		adapter.Router.HandleFunc(message.Path, withLogging(handler)).Methods("POST")
 	}
 
@@ -92,7 +110,7 @@ func (adapter *Adapter) ListenAndServe(port int) error {
 }
 
 // Builds the HTTP handler for a given C2D route definition.
-func (adapter *Adapter) buildD2CMessageHandler(message D2CMessage) func(*log.Entry, http.ResponseWriter, *http.Request) {
+func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func(*log.Entry, http.ResponseWriter, *http.Request) {
 	return func(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 		var jsonBody map[string]interface{}
 		if err := decodeJsonBody(w, r, &jsonBody); err != nil {
@@ -100,11 +118,11 @@ func (adapter *Adapter) buildD2CMessageHandler(message D2CMessage) func(*log.Ent
 			return
 		}
 
-		// Execute transformation if one was provided. If not, the route is pass-through.
+		// Execute body transformation if one was provided. If not, the route is pass-through.
 		var transformedPayload interface{}
-		if message.Transform != "" {
+		if message.TransformId != "" {
 			var err error
-			transformedPayload, err = adapter.Engine.Execute(message.Path, jsonBody)
+			transformedPayload, err = adapter.Engine.Execute(message.TransformId, jsonBody)
 
 			if err != nil {
 				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Payload transformation failed: %s", err.Error()))
@@ -151,15 +169,17 @@ func (adapter *Adapter) buildD2CMessageHandler(message D2CMessage) func(*log.Ent
 		}))
 
 		var deviceId string
-		if message.DeviceIdBodyField != "" {
-			deviceIdRaw, ok := jsonBody[message.DeviceIdBodyField]
-			if !ok {
-				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Expected device Id in \"%s\" body field", message.DeviceIdBodyField))
+		if message.DeviceIdBodyQueryId != "" {
+			var queriedDeviceId interface{}
+			var err error
+			if queriedDeviceId, err = adapter.Engine.Execute(message.DeviceIdBodyQueryId, jsonBody); err != nil {
+				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Device Id body query failed: %s", err.Error()))
 				return
 			}
 
-			if deviceId, ok = deviceIdRaw.(string); !ok {
-				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Expected device Id in \"%s\" body field to be string", message.DeviceIdBodyField))
+			var ok bool
+			if deviceId, ok = queriedDeviceId.(string); !ok || deviceId == "" {
+				respondError(logger, w, http.StatusBadRequest, "Expected result from device Id body query to be string")
 				return
 			}
 		} else if message.DeviceIdPathParam != "" {

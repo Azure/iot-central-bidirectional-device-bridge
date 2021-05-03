@@ -16,9 +16,9 @@ type Config struct {
 
 type D2CMessage struct {
 	Path              string `json:"path"`              // Path filter for requests that will be routed to this transform
-	Transform         string `json:"transform"`         // jq transform query
+	Transform         string `json:"transform"`         // jq query to tranform the request body
 	DeviceIdPathParam string `json:"deviceIdPathParam"` // Path parameter containing device Id
-	DeviceIdBodyField string `json:"deviceIdBodyField"` // Body field containing device Id
+	DeviceIdBodyQuery string `json:"deviceIdBodyQuery"` // jq query to pick the device Id from the request body
 	AuthHeader        string `json:"authHeader"`        // Header containing auth key
 	AuthQueryParam    string `json:"authQueryParam"`    // Query parameter containing auth key
 }
@@ -50,12 +50,12 @@ func validate(config *Config) error {
 			return errors.New("Path missing in D2C message definition")
 		}
 
-		if message.AuthHeader == "" && message.AuthQueryParam == "" {
+		if (message.AuthHeader == "" && message.AuthQueryParam == "") || (message.AuthHeader != "" && message.AuthQueryParam != "") {
 			return errors.New(fmt.Sprintf("Either authHeader or authQueryParam must be defined in D2C message definition %s", message.Path))
 		}
 
-		if message.DeviceIdPathParam == "" && message.DeviceIdBodyField == "" {
-			return errors.New(fmt.Sprintf("Either deviceIdPathParam or deviceIdBodyField must be defined in D2C message definition %s", message.Path))
+		if (message.DeviceIdPathParam == "" && message.DeviceIdBodyQuery == "") || (message.DeviceIdPathParam != "" && message.DeviceIdBodyQuery != "") {
+			return errors.New(fmt.Sprintf("Either deviceIdPathParam or deviceIdBodyQuery must be defined in D2C message definition %s", message.Path))
 		}
 	}
 

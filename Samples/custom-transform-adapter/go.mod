@@ -7,6 +7,7 @@ require (
 	github.com/Azure/go-autorest/autorest/date v0.3.0
 	github.com/Azure/go-autorest/autorest/validation v0.3.1
 	github.com/Azure/go-autorest/tracing v0.6.0
+	github.com/google/uuid v1.2.0 // indirect
 	github.com/gorilla/mux v1.8.0
 	github.com/itchyny/gojq v0.12.2
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
