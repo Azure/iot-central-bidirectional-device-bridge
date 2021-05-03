@@ -22,7 +22,7 @@ func TestLoadConfigMalformedJSON(t *testing.T) {
 func ExampleLoadConfigSuccess() {
 	result, _ := LoadConfig("config_mock.json")
 	fmt.Println(result)
-	// Output: &{[{/{id}/cde  id  key } {/message { data: .dd,  properties, componentName, creationTimeUtc }  Id  apk}]}
+	// Output: &{[{/{id}/cde  id  key } {/message { data: .dd,  properties, componentName, creationTimeUtc }  .Device.Id  apk}]}
 }
 
 func TestValidatePathMissing(t *testing.T) {
@@ -32,7 +32,7 @@ func TestValidatePathMissing(t *testing.T) {
 
 func TestValidateDeviceIdParamMissing(t *testing.T) {
 	err := validate(&Config{D2CMessages: []D2CMessage{{Path: "/", AuthHeader: "key"}}})
-	assert.EqualError(t, err, "Either deviceIdPathParam or deviceIdBodyField must be defined in D2C message definition /")
+	assert.EqualError(t, err, "Either deviceIdPathParam or deviceIdBodyQuery must be defined in D2C message definition /")
 }
 
 func TestValidateAuthMissing(t *testing.T) {

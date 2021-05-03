@@ -6,7 +6,7 @@
     }, {
         "path": "/message",
         "transform": "{ data: .dd,  properties, componentName, creationTimeUtc }",
-        "deviceIdBodyField": "Id",
+        "DeviceIdBodyQuery": ".Device.Id",
         "authQueryParam": "apk"
     }]
 }

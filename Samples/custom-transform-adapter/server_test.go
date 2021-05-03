@@ -278,17 +278,17 @@ func TestNoAuth(t *testing.T) {
 	assert.Contains(t, recorder.Body.String(), "No auth method specified")
 }
 
-func TestDeviceIdBodyField(t *testing.T) {
+func TestDeviceIdBodyQuery(t *testing.T) {
 	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/message",
-			DeviceIdBodyField: "body_field",
+			DeviceIdBodyQuery: ".device.id",
 			AuthHeader:        "key",
 		},
 	}}, "localhost:1000")
 
 	adapter.GetBridgeClient = mockGetBridgeClient
-	var jsonBody = []byte(`{ "body_field": "body_id" }`)
+	var jsonBody = []byte(`{ "device": { "id": "body_id" }}`)
 	req, _ := http.NewRequest("POST", "/message", bytes.NewBuffer(jsonBody))
 	req.Header.Add("key", "test_key")
 	recorder := httptest.NewRecorder()
@@ -297,42 +297,42 @@ func TestDeviceIdBodyField(t *testing.T) {
 	assert.Equal(t, "body_id", mockBridgeClient.LastSendMessageDeviceId)
 }
 
-func TestDeviceIdBodyFieldMissing(t *testing.T) {
+func TestDeviceIdBodyQueryFieldMissing(t *testing.T) {
 	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/message",
-			DeviceIdBodyField: "body_field",
+			DeviceIdBodyQuery: "{(.device): 1}",
 			AuthHeader:        "key",
 		},
 	}}, "localhost:1000")
 
 	adapter.GetBridgeClient = mockGetBridgeClient
-	var jsonBody = []byte(`{ }`)
+	var jsonBody = []byte(`{ "device": {}}`)
 	req, _ := http.NewRequest("POST", "/message", bytes.NewBuffer(jsonBody))
 	req.Header.Add("key", "test_key")
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Expected device Id in \\\"body_field\\\" body field")
+	assert.Contains(t, recorder.Body.String(), "Device Id body query failed")
 }
 
-func TestDeviceIdBodyFieldBadFormat(t *testing.T) {
+func TestDeviceIdBodyQueryBadFormat(t *testing.T) {
 	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/message",
-			DeviceIdBodyField: "body_field",
+			DeviceIdBodyQuery: ".device.id",
 			AuthHeader:        "key",
 		},
 	}}, "localhost:1000")
 
 	adapter.GetBridgeClient = mockGetBridgeClient
-	var jsonBody = []byte(`{ "body_field": 123 }`)
+	var jsonBody = []byte(`{ "device": { "id": 123 }}`)
 	req, _ := http.NewRequest("POST", "/message", bytes.NewBuffer(jsonBody))
 	req.Header.Add("key", "test_key")
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Expected device Id in \\\"body_field\\\" body field to be string")
+	assert.Contains(t, recorder.Body.String(), "Expected result from device Id body query to be string")
 }
 
 func TestDeviceIdPathParameterMissing(t *testing.T) {
@@ -431,7 +431,7 @@ func TestMultipleRoutes(t *testing.T) {
 		},
 		{
 			Path:              "/another_message",
-			DeviceIdBodyField: "body_field",
+			DeviceIdBodyQuery: ".device.id",
 			AuthHeader:        "another_key",
 		},
 	}}, "localhost:1000")
@@ -446,7 +446,7 @@ func TestMultipleRoutes(t *testing.T) {
 	assert.Equal(t, "test_device", mockBridgeClient.LastSendMessageDeviceId)
 	assert.Equal(t, float64(21), mockBridgeClient.LastSendMessageBody.Data["temperature"])
 
-	jsonBody = []byte(`{ "body_field": "body_id", "data": {"humidity": 30}}`)
+	jsonBody = []byte(`{ "device": { "id": "body_id" }, "data": {"humidity": 30}}`)
 	req, _ = http.NewRequest("POST", "/another_message", bytes.NewBuffer(jsonBody))
 	req.Header.Add("another_key", "test_key")
 	recorder = httptest.NewRecorder()
