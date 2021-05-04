@@ -45,7 +45,7 @@ The adapter logs will be published to the same Log Analytics Workspace and the B
 A configuration file must be in JSON format and have the format below. Each entry of the `d2cMessages` array specifies
 a route that will receive `POST` requests with telemetry messages.
 
-```json
+```
 {
     "d2cMessages": [
       {
