@@ -1,0 +1,571 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "bridge-name": {
+            "type": "string",
+            "metadata": {
+                "description": "The name of the device bridge. Also will be used in the url."
+            }
+        },
+        "iotc-dps-sas-key": {
+            "type": "securestring",
+            "metadata": {
+                "description": "DPS sas key for provisioning devices and sending data. Retrieved from iot central."
+            }
+        },
+        "iotc-id-scope": {
+            "type": "string",
+            "metadata": {
+                "description": "ID Scope provisioning devices and sending data. Retrieved from iot central."
+            }
+        },
+        "api-key": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Api key used to validate requests to IoTC device bridge."
+            }
+        },
+        "sql-username": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for the sql server provisioned."
+            }
+        },
+        "sql-password": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the sql server provisioned."
+            }
+        },
+        "log-analytics-workspace-id": {
+            "type": "string",
+            "metadata": {
+                "description": "Log Analytics workspace id for log storage."
+            }
+        },
+        "log-analytics-workspace-key": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Log Analytics workspace key for log storage."
+            }
+        },
+        "bridge-image": {
+            "type": "string",
+            "metadata": {
+                "description": "Docker image to be deployed for the core and setup modules."
+            }
+        },
+        "adapter-image": {
+            "type": "string",
+            "metadata": {
+                "description": "Docker image to be deployed for the adapter module."
+            }
+        },
+        "acr-server": {
+            "type": "string",
+            "metadata": {
+                "description": "Private ACR server to pull the image from."
+            }
+        },
+        "acr-username": {
+            "type": "string",
+            "metadata": {
+                "description": "Username of the private ACR."
+            }
+        },
+        "acr-password": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password of the private ACR."
+            }
+        }
+    },
+    "variables": {
+        "setupContainerGroupsName": "[concat('iotc-container-groups-setup-', uniqueString(resourceGroup().id))]",
+        "containerGroupsName": "[concat('iotc-container-groups-', uniqueString(resourceGroup().id))]",
+        "bridgeContainerName": "[concat('iotc-bridge-container-', uniqueString(resourceGroup().id))]",
+        "keyvaultName": "[concat('iotc-kv-', uniqueString(resourceGroup().id))]",
+        "databaseName": "[concat('iotc-db-', uniqueString(resourceGroup().id))]",
+        "sqlServerName": "[concat('iotc-sql-', uniqueString(resourceGroup().id))]",
+        "storageAccountName": "[concat('iotcsa', uniqueString(resourceGroup().id))]",
+        "bridge-url": "[concat(parameters('bridge-name'), '.', resourceGroup().location, '.azurecontainer.io')]",
+        "reverse-proxy-bridge-routes": "reverse_proxy /devices/* localhost:5001",
+        "reverse-proxy-health-route": "reverse_proxy /health localhost:5001",
+        "reverse-proxy-adapter-catch-all": "reverse_proxy * localhost:3000",
+        "caddy-config": "[concat('printf \"', variables('bridge-url'), '\n{\n', variables('reverse-proxy-bridge-routes'), '\n', variables('reverse-proxy-health-route'), '\n', variables('reverse-proxy-adapter-catch-all'), '\n}\n\"')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "name": "[variables('storageAccountName')]",
+            "location": "[resourceGroup().location]",
+            "kind": "StorageV2",
+            "sku": {
+                "name": "Standard_LRS",
+                "tier": "Standard"
+            },
+            "resources": [
+                {
+                    "type": "fileServices/shares",
+                    "apiVersion": "2019-06-01",
+                    "name": "/default/bridge",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+                    ]
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.Sql/servers",
+            "apiVersion": "2019-06-01-preview",
+            "name": "[variables('sqlServerName')]",
+            "location": "[resourceGroup().location]",
+            "tags": {},
+            "kind": "v12.0",
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "administratorLogin": "[parameters('sql-username')]",
+                "administratorLoginPassword": "[parameters('sql-password')]",
+                "version": "12.0",
+                "publicNetworkAccess": "Enabled"
+            },
+            "resources": [
+                {
+                    "type": "firewallrules",
+                    "name": "AllowAllWindowsAzureIps",
+                    "apiVersion": "2019-06-01-preview",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Sql/servers', concat(variables('sqlServerName')))]"
+                    ],
+                    "properties": {
+                        "endIpAddress": "0.0.0.0",
+                        "startIpAddress": "0.0.0.0"
+                    }
+                },
+                {
+                    "type": "databases",
+                    "apiVersion": "2019-06-01-preview",
+                    "name": "[variables('databaseName')]",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+                    ],
+                    "sku": {
+                        "name": "Basic",
+                        "tier": "Basic",
+                        "capacity": 5
+                    },
+                    "kind": "v12.0,user",
+                    "properties": {
+                        "collation": "SQL_Latin1_General_CP1_CI_AS",
+                        "maxSizeBytes": 2147483648,
+                        "catalogCollation": "SQL_Latin1_General_CP1_CI_AS",
+                        "zoneRedundant": false,
+                        "readScale": "Disabled",
+                        "storageAccountType": "GRS"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2019-12-01",
+            "name": "[variables('setupContainerGroupsName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('databaseName'))]"
+            ],
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "sku": "Standard",
+                "containers": [
+                    {
+                        "name": "bridge-setup",
+                        "properties": {
+                            "image": "[parameters('bridge-image')]",
+                            "environmentVariables": [
+                                {
+                                    "name": "KV_URL",
+                                    "value": "[concat('https://', variables('keyvaultName'), '.vault.azure.net/')]"
+                                }
+                            ],
+                            "command": [
+                                "dotnet",
+                                "DeviceBridge.dll",
+                                "--setup"
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "memoryInGB": 1,
+                                    "cpu": 1
+                                }
+                            }
+                        }
+                    }
+                ],
+                "restartPolicy": "OnFailure",
+                "imageRegistryCredentials": [
+                    {
+                        "server": "[parameters('acr-server')]",
+                        "username": "[parameters('acr-username')]",
+                        "password": "[parameters('acr-password')]"
+                    }
+                ],
+                "diagnostics" : {
+                    "logAnalytics": {
+                        "workspaceId": "[parameters('log-analytics-workspace-id')]",
+                        "workspaceKey": "[parameters('log-analytics-workspace-key')]"
+                    }
+                },
+                "osType": "Linux"
+            }
+        },
+        {
+            "type": "Microsoft.ContainerInstance/containerGroups",
+            "apiVersion": "2019-12-01",
+            "name": "[variables('containerGroupsName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]",
+                "[resourceId('Microsoft.Sql/servers/databases', variables('sqlServerName'), variables('databaseName'))]"
+            ],
+            "identity": {
+                "type": "SystemAssigned"
+            },
+            "properties": {
+                "sku": "Standard",
+                "containers": [
+                    {
+                        "name": "adapter",
+                        "properties": {
+                            "image": "[parameters('adapter-image')]",
+                            "ports": [
+                                {
+                                    "port": 3000
+                                }
+                            ],
+                            "environmentVariables": [
+                                {
+                                    "name": "PORT",
+                                    "value": "3000"
+                                },
+                                {
+                                    "name": "BRIDGE_URL",
+                                    "value": "http://localhost:5001"
+                                },
+                                {
+                                    "name": "CONFIG_PATH",
+                                    "value": "/adapter-config/config.json"
+                                }
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "memoryInGB": 0.5,
+                                    "cpu": 0.5
+                                }
+                            },
+                            "volumeMounts": [
+                              {
+                                "name": "adapter-config",
+                                "mountPath": "/adapter-config"
+                              }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "[variables('bridgeContainerName')]",
+                        "properties": {
+                            "image": "[parameters('bridge-image')]",
+                            "ports": [
+                                {
+                                    "port": 5001
+                                }
+                            ],
+                            "environmentVariables": [
+                                {
+                                    "name": "MAX_POOL_SIZE",
+                                    "value": "50"
+                                },
+                                {
+                                    "name": "DEVICE_CONNECTION_BATCH_SIZE",
+                                    "value": "150"
+                                },
+                                {
+                                    "name": "DEVICE_CONNECTION_BATCH_INTERVAL_MS",
+                                    "value": "1000"
+                                },
+                                {
+                                    "name": "KV_URL",
+                                    "value": "[concat('https://', variables('keyvaultName'), '.vault.azure.net/')]"
+                                },
+                                {
+                                    "name": "PORT",
+                                    "value": "5001"
+                                }
+                            ],
+                            "resources": {
+                                "requests": {
+                                    "memoryInGB": 1.5,
+                                    "cpu": 0.8
+                                }
+                            }
+                        }
+                    },
+                    {
+                        "name": "caddy-ssl-server",
+                        "properties": {
+                          "image": "caddy@sha256:d0b43ebda8fd47409cec98d5f3c3b4c60bfc6bca35338313c002dc64c2283055",
+                          "command": [
+                            "/bin/sh",
+                            "-c",
+                            "[concat(variables('caddy-config'), ' | caddy run --config - --adapter caddyfile 2>> /tmp/caddy.log')]"
+                            ],
+                          "ports": [
+                            {
+                              "protocol": "TCP",
+                              "port": 443
+                            },
+                            {
+                              "protocol": "TCP",
+                              "port": 80
+                            }
+                          ],
+                          "environmentVariables": [],
+                          "resources": {
+                            "requests": {
+                              "memoryInGB": 0.5,
+                              "cpu": 0.2
+                            }
+                          },
+                          "volumeMounts": [
+                            {
+                              "name": "data",
+                              "mountPath": "/data"
+                            },
+                            {
+                              "name": "config",
+                              "mountPath": "/config"
+                            }
+                          ]
+                        }
+                      }
+                ],
+                "volumes": [
+                    {
+                      "name": "data",
+                      "azureFile": {
+                        "shareName": "bridge",
+                        "storageAccountName": "[variables('storageAccountName')]",
+                        "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value]"
+                      }
+                    },
+                    {
+                      "name": "config",
+                      "azureFile": {
+                        "shareName": "bridge",
+                        "storageAccountName": "[variables('storageAccountName')]",
+                        "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value]"
+                      }
+                    },
+                    {
+                      "name": "adapter-config",
+                      "azureFile": {
+                        "shareName": "bridge",
+                        "storageAccountName": "[variables('storageAccountName')]",
+                        "storageAccountKey": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName')), '2019-06-01').keys[0].value]"
+                      }
+                    }
+                  ],
+                "initContainers": [
+                ],
+                "restartPolicy": "Always",
+                "imageRegistryCredentials": [
+                    {
+                        "server": "[parameters('acr-server')]",
+                        "username": "[parameters('acr-username')]",
+                        "password": "[parameters('acr-password')]"
+                    }
+                ],
+                "diagnostics" : {
+                    "logAnalytics": {
+                        "workspaceId": "[parameters('log-analytics-workspace-id')]",
+                        "workspaceKey": "[parameters('log-analytics-workspace-key')]"
+                    }
+                },
+                "ipAddress": {
+                    "ports": [
+                        {
+                            "protocol": "TCP",
+                            "port": 443
+                        }
+                    ],
+                    "type": "Public",
+                    "dnsNameLabel": "[parameters('bridge-name')]"
+                },
+                "osType": "Linux"
+            }
+        },
+        {
+            "type": "Microsoft.KeyVault/vaults",
+            "apiVersion": "2016-10-01",
+            "name": "[variables('keyvaultName')]",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [
+                "[resourceId('Microsoft.ContainerInstance/containerGroups', variables('containerGroupsName'))]",
+                "[resourceId('Microsoft.ContainerInstance/containerGroups', variables('setupContainerGroupsName'))]"
+            ],
+            "properties": {
+                "sku": {
+                    "family": "A",
+                    "name": "Standard"
+                },
+                "tenantId": "[subscription().tenantId]",
+                "enabledForDeployment": true,
+                "enabledForDiskEncryption": true,
+                "enabledForTemplateDeployment": true,
+                "accessPolicies": [
+                    {
+                        "tenantId": "[subscription().tenantid]",
+                        "objectId": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', variables('containerGroupsName')),'2019-12-01', 'full').identity.principalId]",
+                        "permissions": {
+                            "keys": [],
+                            "secrets": [
+                                "get",
+                                "list"
+                            ],
+                            "certificates": []
+                        }
+                    },
+                    {
+                        "tenantId": "[subscription().tenantid]",
+                        "objectId": "[reference(resourceId('Microsoft.ContainerInstance/containerGroups', variables('setupContainerGroupsName')),'2019-12-01', 'full').identity.principalId]",
+                        "permissions": {
+                            "keys": [],
+                            "secrets": [
+                                "get",
+                                "list",
+                                "set"
+                            ],
+                            "certificates": []
+                        }
+                    }
+                ]
+            },
+            "resources": [
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "apiKey",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[parameters('api-key')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "iotc-sas-key",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[parameters('iotc-dps-sas-key')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "iotc-id-scope",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[parameters('iotc-id-scope')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "sql-username",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[parameters('sql-username')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "sql-password",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[parameters('sql-password')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "sql-server",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]",
+                        "[resourceId('Microsoft.Sql/servers', concat(variables('sqlServerName')))]"
+                    ],
+                    "properties": {
+                        "value": "[reference(variables('sqlServerName')).fullyQualifiedDomainName]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                },
+                {
+                    "type": "secrets",
+                    "apiVersion": "2016-10-01",
+                    "name": "sql-database",
+                    "location": "[resourceGroup().location]",
+                    "dependsOn": [
+                        "[resourceId('Microsoft.KeyVault/vaults', variables('keyvaultName'))]"
+                    ],
+                    "properties": {
+                        "value": "[variables('databaseName')]",
+                        "attributes": {
+                            "enabled": true
+                        }
+                    }
+                }
+            ]
+        }
+    ]
+}
