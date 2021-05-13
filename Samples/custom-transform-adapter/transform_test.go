@@ -40,19 +40,19 @@ func TestTransformEngineExecuteNotFound(t *testing.T) {
 	engine := NewTransformEngine()
 	assert.NoError(t, engine.AddTransform("a-transform", "."))
 	_, err := engine.Execute("another-transform", map[string]interface{}{})
-	assert.EqualError(t, err, "Transformation for id another-transform not found")
+	assert.EqualError(t, err, "transform-adapter: transformation for id another-transform not found")
 }
 
 func TestTransformEngineExecuteFail(t *testing.T) {
 	engine := NewTransformEngine()
 	assert.NoError(t, engine.AddTransform("bad-transform", "{(.a): 1}"))
 	_, err := engine.Execute("bad-transform", map[string]interface{}{"a": 1})
-	assert.EqualError(t, err, "Transform id bad-transform failed: expected a string for object key but got: number (1)")
+	assert.EqualError(t, err, "transform-adapter: transform id bad-transform failed: expected a string for object key but got: number (1)")
 }
 
 func TestTransformEngineExecuteMultipleResults(t *testing.T) {
 	engine := NewTransformEngine()
 	assert.NoError(t, engine.AddTransform("multiple-results", "{a: 1},{b: 2}"))
 	_, err := engine.Execute("multiple-results", map[string]interface{}{})
-	assert.EqualError(t, err, "Transform id multiple-results generated multiple results")
+	assert.EqualError(t, err, "transform-adapter: transform id multiple-results generated multiple results")
 }
