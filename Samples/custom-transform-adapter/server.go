@@ -6,9 +6,11 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/Azure/go-autorest/autorest"
@@ -62,9 +64,13 @@ type AugmentedD2CMessage struct {
 	DeviceIdBodyQueryId string
 }
 
-// NewAdapterFromConfig builds a transform adapter for a given configuration.
-func NewAdapterFromConfig(config *Config, bridgeEndpoint string) *Adapter {
+// NewAdapter builds a transform adapter for a given configuration.
+func NewAdapter(config *Config, bridgeEndpoint string) (*Adapter, error) {
 	log.Info(fmt.Sprintf("Initializing adapter for Bridge %s", bridgeEndpoint))
+
+	if bridgeEndpoint == "" {
+		return nil, errors.New("transform-adapter: missing Bridge URL")
+	}
 
 	adapter := Adapter{
 		Engine: NewTransformEngine(),
@@ -100,12 +106,18 @@ func NewAdapterFromConfig(config *Config, bridgeEndpoint string) *Adapter {
 		adapter.Router.HandleFunc(message.Path, withLogging(handler)).Methods("POST")
 	}
 
-	return &adapter
+	return &adapter, nil
 }
 
-func (adapter *Adapter) ListenAndServe(port int) error {
-	log.Info(fmt.Sprintf("Server listening on port %d", port))
-	return http.ListenAndServe(fmt.Sprintf(":%d", port), adapter.Router)
+func (adapter *Adapter) ListenAndServe(port string) error {
+	portInt, err := strconv.Atoi(port)
+
+	if err != nil {
+		fmt.Errorf("invalid port: %s", err)
+	}
+
+	log.Info(fmt.Sprintf("Server listening on port %d", portInt))
+	return http.ListenAndServe(fmt.Sprintf(":%d", portInt), adapter.Router)
 }
 
 // buildD2CMessageHandler builds the HTTP handler for a given C2D route definition.

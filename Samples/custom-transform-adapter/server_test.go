@@ -54,7 +54,7 @@ func (client *BridgeWithBrokenSend) SendMessage(ctx context.Context, deviceID st
 }
 
 func TestNewAdapterFromConfigBridgeUrl(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -65,7 +65,7 @@ func TestNewAdapterFromConfigBridgeUrl(t *testing.T) {
 }
 
 func TestMalformedJsonBody(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -83,7 +83,7 @@ func TestMalformedJsonBody(t *testing.T) {
 }
 
 func TestBasicTransform(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -104,7 +104,7 @@ func TestBasicTransform(t *testing.T) {
 }
 
 func TestBadTransform(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -124,7 +124,7 @@ func TestBadTransform(t *testing.T) {
 }
 
 func TestPassthroughTransform(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -144,7 +144,7 @@ func TestPassthroughTransform(t *testing.T) {
 }
 
 func TestCreationTimeUtc(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -166,7 +166,7 @@ func TestCreationTimeUtc(t *testing.T) {
 }
 
 func TestBadCreationTimeUtc(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -186,7 +186,7 @@ func TestBadCreationTimeUtc(t *testing.T) {
 }
 
 func TestBadOutputPayload(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -206,7 +206,7 @@ func TestBadOutputPayload(t *testing.T) {
 }
 
 func ExampleAuthQueryParam() {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -225,7 +225,7 @@ func ExampleAuthQueryParam() {
 }
 
 func TestBadAuthQueryParam(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -243,7 +243,7 @@ func TestBadAuthQueryParam(t *testing.T) {
 }
 
 func ExampleAuthHeader() {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -262,7 +262,7 @@ func ExampleAuthHeader() {
 }
 
 func TestNoAuth(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -279,7 +279,7 @@ func TestNoAuth(t *testing.T) {
 }
 
 func TestDeviceIdBodyQuery(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/message",
 			DeviceIdBodyQuery: ".device.id",
@@ -298,7 +298,7 @@ func TestDeviceIdBodyQuery(t *testing.T) {
 }
 
 func TestDeviceIdBodyQueryFieldMissing(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/message",
 			DeviceIdBodyQuery: "{(.device): 1}",
@@ -317,7 +317,7 @@ func TestDeviceIdBodyQueryFieldMissing(t *testing.T) {
 }
 
 func TestDeviceIdBodyQueryBadFormat(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/message",
 			DeviceIdBodyQuery: ".device.id",
@@ -336,7 +336,7 @@ func TestDeviceIdBodyQueryBadFormat(t *testing.T) {
 }
 
 func TestDeviceIdPathParameterMissing(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:       "/{another_id}/message",
 			AuthHeader: "key",
@@ -354,7 +354,7 @@ func TestDeviceIdPathParameterMissing(t *testing.T) {
 }
 
 func TestBridgeStatusCode(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -379,7 +379,7 @@ func TestBridgeStatusCode(t *testing.T) {
 }
 
 func TestBridgeEmptyStatusCodeReturns500(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -404,7 +404,7 @@ func TestBridgeEmptyStatusCodeReturns500(t *testing.T) {
 }
 
 func Test404(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",
@@ -422,7 +422,7 @@ func Test404(t *testing.T) {
 }
 
 func TestMultipleRoutes(t *testing.T) {
-	adapter := NewAdapterFromConfig(&Config{D2CMessages: []D2CMessage{
+	adapter, _ := NewAdapter(&Config{D2CMessages: []D2CMessage{
 		{
 			Path:              "/{id}/message",
 			DeviceIdPathParam: "id",

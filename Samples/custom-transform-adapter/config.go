@@ -41,6 +41,14 @@ type D2CMessageRaw struct {
 
 // LoadConfig loads, parses, and validates an adapter config from a file.
 func LoadConfig(configPath string, configFileName string) (*Config, error) {
+	if configPath == "" {
+		return nil, errors.New("transform-adapter: missing config path")
+	}
+
+	if configFileName == "" {
+		return nil, errors.New("transform-adapter: missing config file")
+	}
+
 	configFile, err := ioutil.ReadFile(filepath.Join(configPath, configFileName))
 
 	if err != nil {
