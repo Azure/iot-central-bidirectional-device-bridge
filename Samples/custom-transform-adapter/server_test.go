@@ -79,7 +79,7 @@ func TestMalformedJsonBody(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Failed to decode JSON body")
+	assert.Contains(t, recorder.Body.String(), "failed to decode JSON body")
 }
 
 func TestBasicTransform(t *testing.T) {
@@ -120,7 +120,7 @@ func TestBadTransform(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Payload transformation failed")
+	assert.Contains(t, recorder.Body.String(), "payload transformation failed")
 }
 
 func TestPassthroughTransform(t *testing.T) {
@@ -182,7 +182,7 @@ func TestBadCreationTimeUtc(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Failed to parse \\\"creationTimeUtc\\\"")
+	assert.Contains(t, recorder.Body.String(), "failed to parse \\\"creationTimeUtc\\\"")
 }
 
 func TestBadOutputPayload(t *testing.T) {
@@ -202,7 +202,7 @@ func TestBadOutputPayload(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Failed to transform payload to expected Device Bridge format")
+	assert.Contains(t, recorder.Body.String(), "failed to transform payload to expected Device Bridge format")
 }
 
 func ExampleAuthQueryParam() {
@@ -239,7 +239,7 @@ func TestBadAuthQueryParam(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Expected auth query parameter \\\"key\\\" to be defined")
+	assert.Contains(t, recorder.Body.String(), "expected auth query parameter \\\"key\\\" to be defined")
 }
 
 func ExampleAuthHeader() {
@@ -275,7 +275,7 @@ func TestNoAuth(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "No auth method specified")
+	assert.Contains(t, recorder.Body.String(), "no auth method specified")
 }
 
 func TestDeviceIdBodyQuery(t *testing.T) {
@@ -313,7 +313,7 @@ func TestDeviceIdBodyQueryFieldMissing(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Device Id body query failed")
+	assert.Contains(t, recorder.Body.String(), "device Id body query failed")
 }
 
 func TestDeviceIdBodyQueryBadFormat(t *testing.T) {
@@ -332,7 +332,7 @@ func TestDeviceIdBodyQueryBadFormat(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Expected result from device Id body query to be string")
+	assert.Contains(t, recorder.Body.String(), "expected result from device Id body query to be string")
 }
 
 func TestDeviceIdPathParameterMissing(t *testing.T) {
@@ -350,7 +350,7 @@ func TestDeviceIdPathParameterMissing(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 400, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "No device Id specified")
+	assert.Contains(t, recorder.Body.String(), "no device Id specified")
 }
 
 func TestBridgeStatusCode(t *testing.T) {
@@ -375,7 +375,7 @@ func TestBridgeStatusCode(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 401, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Call to Device Bridge failed: bad request")
+	assert.Contains(t, recorder.Body.String(), "call to Device Bridge failed: bad request")
 }
 
 func TestBridgeEmptyStatusCodeReturns500(t *testing.T) {
@@ -400,7 +400,7 @@ func TestBridgeEmptyStatusCodeReturns500(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	adapter.Router.ServeHTTP(recorder, req)
 	assert.Equal(t, 500, recorder.Code)
-	assert.Contains(t, recorder.Body.String(), "Call to Device Bridge failed: bad request")
+	assert.Contains(t, recorder.Body.String(), "call to Device Bridge failed: bad request")
 }
 
 func Test404(t *testing.T) {

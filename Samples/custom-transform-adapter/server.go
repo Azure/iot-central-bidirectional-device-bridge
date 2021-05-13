@@ -66,7 +66,7 @@ type AugmentedD2CMessage struct {
 
 // NewAdapter builds a transform adapter for a given configuration.
 func NewAdapter(config *Config, bridgeEndpoint string) (*Adapter, error) {
-	log.Info(fmt.Sprintf("Initializing adapter for Bridge %s", bridgeEndpoint))
+	log.Infof("Initializing adapter for Bridge %s", bridgeEndpoint)
 
 	if bridgeEndpoint == "" {
 		return nil, errors.New("transform-adapter: missing Bridge URL")
@@ -81,24 +81,24 @@ func NewAdapter(config *Config, bridgeEndpoint string) (*Adapter, error) {
 	}
 
 	for _, message := range config.D2CMessages {
-		log.Info(fmt.Sprintf("Initializing route %s", message.Path))
+		log.Infof("Initializing route %s", message.Path)
 		augmentedMessage := AugmentedD2CMessage{D2CMessage: message}
 
 		// Initialize cache for request body transform.
 		if message.Transform != "" {
 			augmentedMessage.TransformId = uuid.New().String()
 			if err := adapter.Engine.AddTransform(augmentedMessage.TransformId, message.Transform); err != nil {
-				log.WithField("error", err).Panic(fmt.Sprintf("Failed to add request body transform for route %s: %s", message.Path, err))
+				return nil, fmt.Errorf("transform-adapter: failed to add request body transform for route %s: %s", message.Path, err)
 			}
 		} else {
-			log.Warn(fmt.Sprintf("Empty transform. Route %s will be set as pass-through", message.Path))
+			log.Warnf("Empty transform. Route %s will be set as pass-through", message.Path)
 		}
 
 		// Initialize cache for device Id transform.
 		if message.DeviceIdBodyQuery != "" {
 			augmentedMessage.DeviceIdBodyQueryId = uuid.New().String()
 			if err := adapter.Engine.AddTransform(augmentedMessage.DeviceIdBodyQueryId, message.DeviceIdBodyQuery); err != nil {
-				log.WithField("error", err).Panic(fmt.Sprintf("Failed to add device Id query transform for route %s: %s", message.Path, err))
+				return nil, fmt.Errorf("transform-adapter: failed to add device Id query transform for route %s: %s", message.Path, err)
 			}
 		}
 
@@ -113,10 +113,10 @@ func (adapter *Adapter) ListenAndServe(port string) error {
 	portInt, err := strconv.Atoi(port)
 
 	if err != nil {
-		fmt.Errorf("invalid port: %s", err)
+		return fmt.Errorf("invalid port: %s", err)
 	}
 
-	log.Info(fmt.Sprintf("Server listening on port %d", portInt))
+	log.Infof("Server listening on port %d", portInt)
 	return http.ListenAndServe(fmt.Sprintf(":%d", portInt), adapter.Router)
 }
 
@@ -125,7 +125,7 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 	return func(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 		var jsonBody map[string]interface{}
 		if err := decodeJsonBody(w, r, &jsonBody); err != nil {
-			respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Failed to decode JSON body: %s", err.Error()))
+			respondError(logger, w, http.StatusBadRequest, fmt.Errorf("failed to decode JSON body: %w", err))
 			return
 		}
 
@@ -136,7 +136,7 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 			transformedPayload, err = adapter.Engine.Execute(message.TransformId, jsonBody)
 
 			if err != nil {
-				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Payload transformation failed: %s", err.Error()))
+				respondError(logger, w, http.StatusBadRequest, fmt.Errorf("payload transformation failed: %w", err))
 				return
 			}
 		} else {
@@ -144,14 +144,14 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 		}
 
 		if err := decodeDateTimeField(&transformedPayload, "creationTimeUtc"); err != nil {
-			respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Failed to parse \"creationTimeUtc\": %s", err.Error()))
+			respondError(logger, w, http.StatusBadRequest, fmt.Errorf("failed to parse \"creationTimeUtc\": %w", err))
 			return
 		}
 
 		// Convert transformation output to Autorest typed input.
 		var bridgePayload bridge.MessageBody
 		if err := mapstructure.Decode(transformedPayload, &bridgePayload); err != nil {
-			respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Failed to transform payload to expected Device Bridge format: %s", err.Error()))
+			respondError(logger, w, http.StatusBadRequest, fmt.Errorf("failed to transform payload to expected Device Bridge format: %w", err))
 			return
 		}
 
@@ -163,7 +163,7 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 			values, ok := r.URL.Query()[message.AuthQueryParam]
 
 			if !ok || len(values) < 1 {
-				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Expected auth query parameter \"%s\" to be defined", message.AuthQueryParam))
+				respondError(logger, w, http.StatusBadRequest, fmt.Errorf("expected auth query parameter \"%s\" to be defined", message.AuthQueryParam))
 				return
 			}
 
@@ -171,7 +171,7 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 		} else if message.AuthHeader != "" {
 			apiKey = r.Header.Get(message.AuthHeader)
 		} else {
-			respondError(logger, w, http.StatusBadRequest, "No auth method specified")
+			respondError(logger, w, http.StatusBadRequest, errors.New("no auth method specified"))
 			return
 		}
 
@@ -184,23 +184,23 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 			var queriedDeviceId interface{}
 			var err error
 			if queriedDeviceId, err = adapter.Engine.Execute(message.DeviceIdBodyQueryId, jsonBody); err != nil {
-				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Device Id body query failed: %s", err.Error()))
+				respondError(logger, w, http.StatusBadRequest, fmt.Errorf("device Id body query failed: %w", err))
 				return
 			}
 
 			var ok bool
 			if deviceId, ok = queriedDeviceId.(string); !ok || deviceId == "" {
-				respondError(logger, w, http.StatusBadRequest, "Expected result from device Id body query to be string")
+				respondError(logger, w, http.StatusBadRequest, errors.New("expected result from device Id body query to be string"))
 				return
 			}
 		} else if message.DeviceIdPathParam != "" {
 			var ok bool
 			if deviceId, ok = mux.Vars(r)[message.DeviceIdPathParam]; !ok {
-				respondError(logger, w, http.StatusBadRequest, fmt.Sprintf("Expected device Id in \"%s\" path parameter", message.DeviceIdPathParam))
+				respondError(logger, w, http.StatusBadRequest, fmt.Errorf("expected device Id in \"%s\" path parameter", message.DeviceIdPathParam))
 				return
 			}
 		} else {
-			respondError(logger, w, http.StatusBadRequest, "No device Id specified")
+			respondError(logger, w, http.StatusBadRequest, errors.New("no device Id specified"))
 			return
 		}
 
@@ -215,7 +215,7 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 				responseStatusCode = http.StatusInternalServerError
 			}
 
-			respondError(logger, w, responseStatusCode, fmt.Sprintf("Call to Device Bridge failed: %s", err.Error()))
+			respondError(logger, w, responseStatusCode, fmt.Errorf("call to Device Bridge failed: %w", err))
 			return
 		}
 
@@ -239,11 +239,11 @@ func withLogging(handler func(*log.Entry, http.ResponseWriter, *http.Request)) f
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
 		logger := log.WithField("request_id", makeShortId())
-		logger.Info(fmt.Sprintf("HTTP request. Path %s", r.URL.Path))
+		logger.Infof("HTTP request. Path %s", r.URL.Path)
 		loggingResponseWriter := &LoggingResponseWriter{ResponseWriter: w}
 		handler(logger, loggingResponseWriter, r)
 		duration := time.Since(startTime).String()
-		logger.Info(fmt.Sprintf("HTTP response. Path %s, status %d, duration %s", r.URL.Path, loggingResponseWriter.ResponseStatus, duration))
+		logger.Infof("HTTP response. Path %s, status %d, duration %s", r.URL.Path, loggingResponseWriter.ResponseStatus, duration)
 	}
 }
 
@@ -253,16 +253,16 @@ func decodeJsonBody(w http.ResponseWriter, r *http.Request, output *map[string]i
 	return decoder.Decode(output)
 }
 
-func respondError(logger *log.Entry, w http.ResponseWriter, statusCode int, message string) {
-	logger.Error(message)
-	respondJson(logger, w, statusCode, map[string]string{"error": message})
+func respondError(logger *log.Entry, w http.ResponseWriter, statusCode int, err error) {
+	logger.Error(err.Error())
+	respondJson(logger, w, statusCode, map[string]string{"error": err.Error()})
 }
 
 func respondJson(logger *log.Entry, w http.ResponseWriter, statusCode int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		log.WithField("error", err).Error(fmt.Sprintf("Failed to encode JSON response: %s", err))
+		log.WithField("error", err).Errorf("Failed to encode JSON response: %s", err)
 	}
 }
 

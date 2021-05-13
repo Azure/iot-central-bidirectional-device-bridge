@@ -3,7 +3,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	log "github.com/sirupsen/logrus"
@@ -21,13 +20,13 @@ func main() {
 	config, err := LoadConfig(configPath, configFileName)
 
 	if err != nil {
-		log.WithField("error", err).Panic(fmt.Sprintf("unable to load config: %s", err))
+		log.WithField("error", err).Panicf("unable to load config: %s", err)
 	}
 
 	adapter, err := NewAdapter(config, bridgeUrl)
 
 	if err != nil {
-		log.WithField("error", err).Panic(fmt.Sprintf("unable to build adapter server: %s", err))
+		log.WithField("error", err).Panicf("unable to build adapter server: %s", err)
 	}
 
 	log.Fatal(adapter.ListenAndServe(os.Getenv("PORT")))
