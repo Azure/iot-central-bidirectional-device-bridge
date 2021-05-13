@@ -180,10 +180,10 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 		}))
 
 		var deviceId string
-		if message.DeviceIdBodyQueryId != "" {
-			var queriedDeviceId interface{}
-			var err error
-			if queriedDeviceId, err = adapter.Engine.Execute(message.DeviceIdBodyQueryId, jsonBody); err != nil {
+		switch {
+		case message.DeviceIdBodyQueryId != "":
+			queriedDeviceId, err := adapter.Engine.Execute(message.DeviceIdBodyQueryId, jsonBody)
+			if err != nil {
 				respondError(logger, w, http.StatusBadRequest, fmt.Errorf("device Id body query failed: %w", err))
 				return
 			}
@@ -193,13 +193,13 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 				respondError(logger, w, http.StatusBadRequest, errors.New("expected result from device Id body query to be string"))
 				return
 			}
-		} else if message.DeviceIdPathParam != "" {
+		case message.DeviceIdPathParam != "":
 			var ok bool
 			if deviceId, ok = mux.Vars(r)[message.DeviceIdPathParam]; !ok {
 				respondError(logger, w, http.StatusBadRequest, fmt.Errorf("expected device Id in \"%s\" path parameter", message.DeviceIdPathParam))
 				return
 			}
-		} else {
+		default:
 			respondError(logger, w, http.StatusBadRequest, errors.New("no device Id specified"))
 			return
 		}
@@ -208,11 +208,9 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 
 		if bridgeResponse, err := bridgeClient.SendMessage(r.Context(), deviceId, &bridgePayload); err != nil {
 			// We return the Bridge status code if we have it
-			var responseStatusCode int
+			responseStatusCode := http.StatusInternalServerError
 			if bridgeResponse != (autorest.Response{}) {
 				responseStatusCode = bridgeResponse.StatusCode
-			} else {
-				responseStatusCode = http.StatusInternalServerError
 			}
 
 			respondError(logger, w, responseStatusCode, fmt.Errorf("call to Device Bridge failed: %w", err))
@@ -276,20 +274,26 @@ func makeShortId() string {
 // decodeDateTimeField converts the specified string field of a JSON map into a date time value, using the Autorest date.Time type.
 // The value is decoded in place. Ignores if field is not present in the map.
 func decodeDateTimeField(json *interface{}, field string) error {
-	if jsonMap, ok := (*json).(map[string]interface{}); ok {
-		if fieldRaw, ok := jsonMap[field]; ok && fieldRaw != nil {
-			if fieldStr, ok := fieldRaw.(string); ok {
-				dateTime, err := time.Parse(time.RFC3339, fieldStr)
-				if err != nil {
-					return err
-				}
-
-				jsonMap[field] = date.Time{dateTime}
-			} else {
-				return fmt.Errorf("if provided, field \"%s\" must be a timestamp string", field)
-			}
-		}
+	jsonMap, ok := (*json).(map[string]interface{})
+	if !ok {
+		return nil
 	}
 
+	fieldRaw, ok := jsonMap[field]
+	if !ok || fieldRaw == nil {
+		return nil
+	}
+
+	fieldStr, ok := fieldRaw.(string)
+	if !ok {
+		return fmt.Errorf("if provided, field \"%s\" must be a timestamp string", field)
+	}
+
+	dateTime, err := time.Parse(time.RFC3339, fieldStr)
+	if err != nil {
+		return err
+	}
+
+	jsonMap[field] = date.Time{dateTime}
 	return nil
 }
