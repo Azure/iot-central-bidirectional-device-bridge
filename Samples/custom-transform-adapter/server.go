@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -56,14 +55,14 @@ type Adapter struct {
 	Engine          *TransformEngine
 }
 
-// D2C message route definition augmented to include the Id of the cached transform queries.
+// AugmentedD2CMessage represents a D2C message route definition augmented to include the Id of the cached transform queries.
 type AugmentedD2CMessage struct {
 	D2CMessage
 	TransformId         string
 	DeviceIdBodyQueryId string
 }
 
-// Builds a transform adapter for a given configuration.
+// NewAdapterFromConfig builds a transform adapter for a given configuration.
 func NewAdapterFromConfig(config *Config, bridgeEndpoint string) *Adapter {
 	log.Info(fmt.Sprintf("Initializing adapter for Bridge %s", bridgeEndpoint))
 
@@ -109,7 +108,7 @@ func (adapter *Adapter) ListenAndServe(port int) error {
 	return http.ListenAndServe(fmt.Sprintf(":%d", port), adapter.Router)
 }
 
-// Builds the HTTP handler for a given C2D route definition.
+// buildD2CMessageHandler builds the HTTP handler for a given C2D route definition.
 func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func(*log.Entry, http.ResponseWriter, *http.Request) {
 	return func(logger *log.Entry, w http.ResponseWriter, r *http.Request) {
 		var jsonBody map[string]interface{}
@@ -212,7 +211,7 @@ func (adapter *Adapter) buildD2CMessageHandler(message AugmentedD2CMessage) func
 	}
 }
 
-// An HTTP response writer extended to capture the response status.
+// LoggingResponseWriter is an HTTP response writer extended to capture the response status.
 type LoggingResponseWriter struct {
 	http.ResponseWriter
 	ResponseStatus int
@@ -223,7 +222,7 @@ func (r *LoggingResponseWriter) WriteHeader(status int) {
 	r.ResponseWriter.WriteHeader(status)
 }
 
-// Wraps a request handler, logging the request, response, and injecting a logger with request context.
+// withLogging wraps a request handler, logging the request, response, and injecting a logger with request context.
 func withLogging(handler func(*log.Entry, http.ResponseWriter, *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		startTime := time.Now()
@@ -255,14 +254,14 @@ func respondJson(logger *log.Entry, w http.ResponseWriter, statusCode int, paylo
 	}
 }
 
-// Returns a random 8-character string.
+// makeShortId returns a random 8-character string.
 func makeShortId() string {
 	randBytes := make([]byte, 4)
 	rand.Read(randBytes)
 	return hex.EncodeToString(randBytes)
 }
 
-// Converts the specified string field of a JSON map into a date time value, using the Autorest date.Time type.
+// decodeDateTimeField converts the specified string field of a JSON map into a date time value, using the Autorest date.Time type.
 // The value is decoded in place. Ignores if field is not present in the map.
 func decodeDateTimeField(json *interface{}, field string) error {
 	if jsonMap, ok := (*json).(map[string]interface{}); ok {
@@ -275,7 +274,7 @@ func decodeDateTimeField(json *interface{}, field string) error {
 
 				jsonMap[field] = date.Time{dateTime}
 			} else {
-				return errors.New(fmt.Sprintf("if provided, field \"%s\" must be a timestamp string", field))
+				return fmt.Errorf("if provided, field \"%s\" must be a timestamp string", field)
 			}
 		}
 	}

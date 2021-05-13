@@ -33,20 +33,20 @@ func ExampleLoadConfigSuccess() {
 
 func TestValidatePathMissing(t *testing.T) {
 	err := validate(&ConfigRaw{D2CMessages: []D2CMessageRaw{{Transform: "."}}})
-	assert.EqualError(t, err, "Path missing in D2C message definition")
+	assert.EqualError(t, err, "transform-adapter: path missing in D2C message definition")
 }
 
 func TestValidateMultipleTransforms(t *testing.T) {
 	err := validate(&ConfigRaw{D2CMessages: []D2CMessageRaw{{Path: "/", Transform: ".", TransformFile: "./transform.jq"}}})
-	assert.EqualError(t, err, "Either transform or transformFile may be defined, not both, in D2C message definition /")
+	assert.EqualError(t, err, "transform-adapter: either transform or transformFile may be defined, not both, in D2C message definition /")
 }
 
 func TestValidateDeviceIdParamMissing(t *testing.T) {
 	err := validate(&ConfigRaw{D2CMessages: []D2CMessageRaw{{Path: "/", AuthHeader: "key"}}})
-	assert.EqualError(t, err, "Either deviceIdPathParam or deviceIdBodyQuery must be defined in D2C message definition /")
+	assert.EqualError(t, err, "transform-adapter: either deviceIdPathParam or deviceIdBodyQuery must be defined in D2C message definition /")
 }
 
 func TestValidateAuthMissing(t *testing.T) {
 	err := validate(&ConfigRaw{D2CMessages: []D2CMessageRaw{{Path: "/"}}})
-	assert.EqualError(t, err, "Either authHeader or authQueryParam must be defined in D2C message definition /")
+	assert.EqualError(t, err, "transform-adapter: either authHeader or authQueryParam must be defined in D2C message definition /")
 }

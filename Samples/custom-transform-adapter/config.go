@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 )
 
-// Represents an adapter configuration (with routes, transforms, etc.)
+// Config represents an adapter configuration (with routes, transforms, etc.)
 type Config struct {
 	D2CMessages []D2CMessage
 }
@@ -24,7 +24,7 @@ type D2CMessage struct {
 	AuthQueryParam    string // Query parameter containing auth key
 }
 
-// Config file, before processing.
+// ConfigRaw represents the input config file, before processing.
 type ConfigRaw struct {
 	D2CMessages []D2CMessageRaw `json:"d2cMessages"`
 }
@@ -39,7 +39,7 @@ type D2CMessageRaw struct {
 	AuthQueryParam    string `json:"authQueryParam"`
 }
 
-// Loads, parses, and validates an adapter config from a file.
+// LoadConfig loads, parses, and validates an adapter config from a file.
 func LoadConfig(configPath string, configFileName string) (*Config, error) {
 	configFile, err := ioutil.ReadFile(filepath.Join(configPath, configFileName))
 
@@ -88,19 +88,19 @@ func LoadConfig(configPath string, configFileName string) (*Config, error) {
 func validate(config *ConfigRaw) error {
 	for _, message := range config.D2CMessages {
 		if message.Path == "" {
-			return errors.New("Path missing in D2C message definition")
+			return errors.New("transform-adapter: path missing in D2C message definition")
 		}
 
 		if message.Transform != "" && message.TransformFile != "" {
-			return errors.New(fmt.Sprintf("Either transform or transformFile may be defined, not both, in D2C message definition %s", message.Path))
+			return fmt.Errorf("transform-adapter: either transform or transformFile may be defined, not both, in D2C message definition %s", message.Path)
 		}
 
 		if (message.AuthHeader == "" && message.AuthQueryParam == "") || (message.AuthHeader != "" && message.AuthQueryParam != "") {
-			return errors.New(fmt.Sprintf("Either authHeader or authQueryParam must be defined in D2C message definition %s", message.Path))
+			return fmt.Errorf("transform-adapter: either authHeader or authQueryParam must be defined in D2C message definition %s", message.Path)
 		}
 
 		if (message.DeviceIdPathParam == "" && message.DeviceIdBodyQuery == "") || (message.DeviceIdPathParam != "" && message.DeviceIdBodyQuery != "") {
-			return errors.New(fmt.Sprintf("Either deviceIdPathParam or deviceIdBodyQuery must be defined in D2C message definition %s", message.Path))
+			return fmt.Errorf("transform-adapter: either deviceIdPathParam or deviceIdBodyQuery must be defined in D2C message definition %s", message.Path)
 		}
 	}
 
