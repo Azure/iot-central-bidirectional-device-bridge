@@ -16,10 +16,21 @@ func TestTransformEngineAddTransform(t *testing.T) {
 	assert.Error(t, engine.AddTransform("invalid", ".{a, b}"))
 }
 
-// SImple query that maps { "a": 1 } to { "b": 1}.
+// Simple query that maps { "a": 1 } to { "b": 1}.
 func ExampleTransformEngineExecuteSample() {
 	engine := NewTransformEngine()
 	engine.AddTransform("sample", "{ b: .a}")
+	result, _ := engine.Execute("sample", map[string]interface{}{"a": 1})
+	fmt.Println(result)
+	// Output: map[b:1]
+}
+
+// Simple multi-line query that maps { "a": 1 } to { "b": 1}.
+func ExampleTransformEngineExecuteMultilineQuery() {
+	engine := NewTransformEngine()
+	engine.AddTransform("sample", `{
+		b: .a
+	}`)
 	result, _ := engine.Execute("sample", map[string]interface{}{"a": 1})
 	fmt.Println(result)
 	// Output: map[b:1]

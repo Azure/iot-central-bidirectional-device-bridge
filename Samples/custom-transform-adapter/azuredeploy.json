@@ -262,7 +262,11 @@
                                 },
                                 {
                                     "name": "CONFIG_PATH",
-                                    "value": "/adapter-config/config.json"
+                                    "value": "/adapter-config"
+                                },
+                                {
+                                    "name": "CONFIG_FILE",
+                                    "value": "config.json"
                                 }
                             ],
                             "resources": {

@@ -94,6 +94,10 @@ Which is a valid telemetry body format for the Bridge.
 
 > NOTE: if a transform is not specified, the route will pass the request body to the Device Bridge _as is_.
 
+#### `transformFile`
+Similar to `tranform`, but specifies the path to the file that contains the jq query. The query file must placed in the same location as
+the `config.json`, in the `bridge` File Share of the Storage Account provisioned with the Bridge.
+
 #### `deviceIdPathParam`
 Specifies the name of the path parameter the will contain the device Id. For instance, if we have a route with `"path": "/telemetry/{id}"`
 and a `"deviceIdPathParam": "id"`, a `POST` request to `/telemetry/my-device` will result in the telemetry being sent on behalf of device `my-device`.

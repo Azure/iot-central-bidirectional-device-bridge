@@ -27,13 +27,18 @@ func main() {
 		log.Panic("Missing Bridge URL")
 	}
 
-	configFilePath := os.Getenv("CONFIG_PATH")
+	configPath := os.Getenv("CONFIG_PATH")
+	configFileName := os.Getenv("CONFIG_FILE")
 
-	if configFilePath == "" {
-		log.Panic("Missing config file path")
+	if configPath == "" {
+		log.Panic("Missing config path")
 	}
 
-	config, err := LoadConfig(configFilePath)
+	if configFileName == "" {
+		log.Panic("Missing config file")
+	}
+
+	config, err := LoadConfig(configPath, configFileName)
 
 	if err != nil {
 		log.WithField("error", err).Panic(fmt.Sprintf("Unable to load config: %s", err))
