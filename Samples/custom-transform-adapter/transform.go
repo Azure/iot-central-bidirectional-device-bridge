@@ -20,13 +20,11 @@ func NewTransformEngine() *TransformEngine {
 // AddTransform saves a query, identified by Id, for later execution
 func (engine *TransformEngine) AddTransform(id string, query string) error {
 	parsed, err := gojq.Parse(query)
-
 	if err != nil {
 		return err
 	}
 
 	compiled, err := gojq.Compile(parsed)
-
 	if err != nil {
 		return err
 	}
@@ -41,14 +39,12 @@ func (engine *TransformEngine) AddTransform(id string, query string) error {
 // Thread safe.
 func (engine *TransformEngine) Execute(id string, input map[string]interface{}) (interface{}, error) {
 	compiled, ok := engine.transforms[id]
-
 	if !ok {
 		return nil, fmt.Errorf("transform-adapter: transformation for id %s not found", id)
 	}
 
 	iter := compiled.Run(input)
 	result, ok := iter.Next()
-
 	if !ok {
 		return nil, fmt.Errorf("transform-adapter: transform id %s generated empty result", id)
 	}
