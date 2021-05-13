@@ -7,47 +7,92 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 )
 
 // Represents an adapter configuration (with routes, transforms, etc.)
 type Config struct {
-	D2CMessages []D2CMessage `json:"d2cMessages"`
+	D2CMessages []D2CMessage
 }
 
 type D2CMessage struct {
-	Path              string `json:"path"`              // Path filter for requests that will be routed to this transform
-	Transform         string `json:"transform"`         // jq query to tranform the request body
-	DeviceIdPathParam string `json:"deviceIdPathParam"` // Path parameter containing device Id
-	DeviceIdBodyQuery string `json:"deviceIdBodyQuery"` // jq query to pick the device Id from the request body
-	AuthHeader        string `json:"authHeader"`        // Header containing auth key
-	AuthQueryParam    string `json:"authQueryParam"`    // Query parameter containing auth key
+	Path              string // Path filter for requests that will be routed to this transform
+	Transform         string // jq query to tranform the request body
+	DeviceIdPathParam string // Path parameter containing device Id
+	DeviceIdBodyQuery string // jq query to pick the device Id from the request body
+	AuthHeader        string // Header containing auth key
+	AuthQueryParam    string // Query parameter containing auth key
+}
+
+// Config file, before processing.
+type ConfigRaw struct {
+	D2CMessages []D2CMessageRaw `json:"d2cMessages"`
+}
+
+type D2CMessageRaw struct {
+	Path              string `json:"path"`
+	Transform         string `json:"transform"`
+	TransformFile     string `json:"transformFile"`
+	DeviceIdPathParam string `json:"deviceIdPathParam"`
+	DeviceIdBodyQuery string `json:"deviceIdBodyQuery"`
+	AuthHeader        string `json:"authHeader"`
+	AuthQueryParam    string `json:"authQueryParam"`
 }
 
 // Loads, parses, and validates an adapter config from a file.
-func LoadConfig(configFileName string) (*Config, error) {
-	configFile, err := ioutil.ReadFile(configFileName)
+func LoadConfig(configPath string, configFileName string) (*Config, error) {
+	configFile, err := ioutil.ReadFile(filepath.Join(configPath, configFileName))
 
 	if err != nil {
 		return nil, err
 	}
 
-	var config Config
+	var configRaw ConfigRaw
 
-	if err = json.Unmarshal(configFile, &config); err != nil {
+	if err = json.Unmarshal(configFile, &configRaw); err != nil {
 		return nil, err
 	}
 
-	if err := validate(&config); err != nil {
+	if err := validate(&configRaw); err != nil {
 		return nil, err
+	}
+
+	config := Config{D2CMessages: make([]D2CMessage, len(configRaw.D2CMessages))}
+
+	// Generate processed config
+	for i, message := range configRaw.D2CMessages {
+		// Resolve transform files
+		if message.TransformFile != "" {
+			transformFileContent, err := ioutil.ReadFile(filepath.Join(configPath, message.TransformFile))
+
+			if err != nil {
+				return nil, err
+			}
+
+			message.Transform = string(transformFileContent)
+		}
+
+		config.D2CMessages[i] = D2CMessage{
+			Path:              message.Path,
+			Transform:         message.Transform,
+			DeviceIdPathParam: message.DeviceIdPathParam,
+			DeviceIdBodyQuery: message.DeviceIdBodyQuery,
+			AuthHeader:        message.AuthHeader,
+			AuthQueryParam:    message.AuthQueryParam,
+		}
 	}
 
 	return &config, nil
 }
 
-func validate(config *Config) error {
+func validate(config *ConfigRaw) error {
 	for _, message := range config.D2CMessages {
 		if message.Path == "" {
 			return errors.New("Path missing in D2C message definition")
+		}
+
+		if message.Transform != "" && message.TransformFile != "" {
+			return errors.New(fmt.Sprintf("Either transform or transformFile may be defined, not both, in D2C message definition %s", message.Path))
 		}
 
 		if (message.AuthHeader == "" && message.AuthQueryParam == "") || (message.AuthHeader != "" && message.AuthQueryParam != "") {
