@@ -5,6 +5,8 @@ The code, written in Go, is deployed as a side-car container alongside the Bridg
 The configuration can specify a custom [jq](https://stedolan.github.io/jq/) query to transform telemetry messages.
 All telemetry messages received by the adapter are transformed and forwarded to the Bridge.
 
+![Demo](assets/demo.gif "demo")
+
 - [JSON to JSON telemetry transformation - parametrized adapter](#json-to-json-telemetry-transformation---parametrized-adapter)
   * [Deployment](#deployment)
     + [API surface](#api-surface)
@@ -19,6 +21,7 @@ All telemetry messages received by the adapter are transformed and forwarded to 
       - [`authHeader`](#-authheader-)
       - [`authQueryParam`](#-authqueryparam-)
     + [Example](#example)
+
 ## Deployment
 To deploy, build the image in this directory and push to your registry. Then use the template below to deploy the solution. This template is a
 simple extension of the one found in the root of this repository (a complete definition of the parameters can be found [here](https://github.com/iot-for-all/iotc-device-bridge#3---deployment-parameters).
