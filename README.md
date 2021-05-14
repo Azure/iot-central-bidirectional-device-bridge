@@ -384,6 +384,13 @@ folder we provide an example of a custom adapter written in TypeScript that forw
 This adapter uses a client automatically generated with [AutoRest](https://github.com/Azure/autorest) using the Bridge swagger available
 under `Docs/swagger.json`. The example also contains the necessary ARM template to deploy it as a sidecar with the Bridge.
 
+For scenarios that require JSON to JSON transformation of telemetry payloads and changes to the main telemetry API
+(e.g., exposing different telemetry endpoints, accepting the device Id and API key in different formats), we provide a
+parametrized adapter under [Samples/custom-transform-adapter](https://github.com/iot-for-all/iotc-device-bridge/tree/main/Samples/custom-transform-adapter)
+that requires no additional code. This adapter can be customized through a simple configuration JSON file. This component might
+be useful, for instance, in a scenario where device payloads can't be modified in the source and can only be sent to a fixed URL
+(i.e., that doesn't include a variable parameter, such as device Id).
+
 We also provide an example of how to deploy multiple adapters (`Samples/MultipleAdapterDeployment`). In this setup,
 each adapter is deployed as a separate container and requests are routed based on the path.
 

@@ -1,0 +1,18 @@
+{
+    "d2cMessages": [{
+        "path": "/{id}/cde",
+        "deviceIdPathParam": "id",
+        "authHeader": "key"
+    }, {
+        "path": "/message",
+        "transform": "{ data: .dd,  properties, componentName, creationTimeUtc }",
+        "DeviceIdBodyQuery": ".Device.Id",
+        "authQueryParam": "apk"
+    },
+    {
+        "path": "/telemetry/{deviceId}",
+        "deviceIdPathParam": "deviceId",
+        "authHeader": "api-key",
+        "transformFile": "./transform_mock.jq"
+    }]
+}
