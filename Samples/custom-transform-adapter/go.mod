@@ -13,6 +13,5 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.3.0
-	golang.org/x/crypto v0.0.0-20220314234659-1baeb1ce4c0b // indirect
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad // indirect
+	golang.org/x/crypto v0.17.0 // indirect
 )
