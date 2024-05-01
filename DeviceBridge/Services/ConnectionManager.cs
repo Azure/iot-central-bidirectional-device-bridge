@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using DeviceBridge.Common.Exceptions;
 using DeviceBridge.Models;
 using DeviceBridge.Providers;
@@ -59,7 +60,12 @@ namespace DeviceBridge.Services
         private readonly IStorageProvider _storageProvider;
 
         private ConcurrentDictionary<string, DeviceClient> _clients = new ConcurrentDictionary<string, DeviceClient>();
-        private ConcurrentDictionary<string, SemaphoreSlim> _clientSemaphores = new ConcurrentDictionary<string, SemaphoreSlim>();
+        private AsyncKeyedLocker<string> _clientSemaphores = new AsyncKeyedLocker<string>(o =>
+        {
+            o.PoolSize = 20;
+            o.PoolInitialFill = 1;
+        });
+
         private ConcurrentDictionary<string, (ConnectionStatus status, ConnectionStatusChangeReason reason)> _clientStatuses = new ConcurrentDictionary<string, (ConnectionStatus status, ConnectionStatusChangeReason reason)>();
         private ConcurrentDictionary<string, DateTime> _lastConnectionAttempt = new ConcurrentDictionary<string, DateTime>();
 
@@ -167,10 +173,9 @@ namespace DeviceBridge.Services
             _logger.Info("Attempting to initialize {connectionType} connection for device {deviceId}", temporary ? "Temporary" : "Permanent", deviceId);
             _lastConnectionAttempt.AddOrUpdate(deviceId, DateTime.Now, (key, oldValue) => DateTime.Now);
 
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (cancellationToken.HasValue ?
+                await _clientSemaphores.LockAsync(deviceId, cancellationToken.Value).ConfigureAwait(false) :
+                await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -243,10 +248,6 @@ namespace DeviceBridge.Services
                     var client = await BuildAndOpenClient(_logger, deviceHub, deviceKey, cancellationToken);
                     _clients.AddOrUpdate(deviceId, client, (key, oldValue) => client);
                 }
-            }
-            finally
-            {
-                mutex.Release();
             }
 
             async Task<DeviceClient> BuildAndOpenClient(Logger logger, string candidateHub, string deviceKey, CancellationToken? cancellationToken = null)
@@ -324,10 +325,7 @@ namespace DeviceBridge.Services
         {
             _logger.Info("Attempting to tear down {connectionType} connection for device {deviceId}", temporary ? "Temporary" : "Permanent", deviceId);
 
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -380,10 +378,6 @@ namespace DeviceBridge.Services
                 client.Dispose();
                 client.SetConnectionStatusChangesHandler(null);
                 _logger.Info("Closed connection for device {deviceId}", deviceId);
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
 
@@ -534,10 +528,7 @@ namespace DeviceBridge.Services
 
             // We need to synchronize this with client creation/close so a race condition doesn't cause us to miss the
             // callback registration on a client that is being currently created.
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -552,10 +543,6 @@ namespace DeviceBridge.Services
                 }
 
                 await client.SetDesiredPropertyUpdateCallbackAsync(callback, null);
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
 
@@ -575,10 +562,7 @@ namespace DeviceBridge.Services
 
             // We need to synchronize this with client creation/close so a race condition doesn't cause us to add the
             // callback to a client that is being currently created but not yet in the clients list.
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -598,10 +582,6 @@ namespace DeviceBridge.Services
                 {
                     _logger.Info("Tried to remove desired property change handler for device {deviceId}, but a handler was not registered", deviceId);
                 }
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
 
@@ -623,10 +603,7 @@ namespace DeviceBridge.Services
 
             // We need to synchronize this with client creation/close so a race condition doesn't cause us to miss the
             // callback registration on a client that is being currently created.
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -641,10 +618,6 @@ namespace DeviceBridge.Services
                 }
 
                 await client.SetMethodDefaultHandlerAsync(callback, null);
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
 
@@ -664,10 +637,7 @@ namespace DeviceBridge.Services
 
             // We need to synchronize this with client creation/close so a race condition doesn't cause us to add the
             // callback to a client that is being currently created but not yet in the clients list.
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -686,10 +656,6 @@ namespace DeviceBridge.Services
                 {
                     _logger.Info("Tried to remove method handler for device {deviceId}, but a handler was not registered", deviceId);
                 }
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
 
@@ -711,10 +677,7 @@ namespace DeviceBridge.Services
 
             // We need to synchronize this with client creation/close so a race condition doesn't cause us to miss the
             // callback registration on a client that is being currently created.
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -759,10 +722,6 @@ namespace DeviceBridge.Services
 
                 await client.SetReceiveMessageHandlerAsync(OnC2DMessageReceived, client);
             }
-            finally
-            {
-                mutex.Release();
-            }
         }
 
         public string GetCurrentMessageCallbackId(string deviceId)
@@ -781,10 +740,7 @@ namespace DeviceBridge.Services
 
             // We need to synchronize this with client creation/close so a race condition doesn't cause us to add the
             // callback to a client that is being currently created but not yet in the clients list.
-            var mutex = _clientSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _clientSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection lock for device {deviceId}", deviceId);
 
@@ -803,10 +759,6 @@ namespace DeviceBridge.Services
                 {
                     _logger.Info("Tried to remove C2DMessage handler for device {deviceId}, but a handler was not registered", deviceId);
                 }
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
 

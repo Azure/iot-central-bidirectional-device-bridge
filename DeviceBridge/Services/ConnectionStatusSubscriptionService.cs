@@ -3,6 +3,7 @@
 using System.Collections.Concurrent;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using DeviceBridge.Models;
 using DeviceBridge.Providers;
 using NLog;
@@ -21,7 +22,11 @@ namespace DeviceBridge.Services
         private readonly ISubscriptionCallbackFactory _subscriptionCallbackFactory;
         private readonly Logger _logger;
 
-        private ConcurrentDictionary<string, SemaphoreSlim> _connectionStatusSubscriptionSyncSemaphores = new ConcurrentDictionary<string, SemaphoreSlim>();
+        private AsyncKeyedLocker<string> _connectionStatusSubscriptionSyncSemaphores = new AsyncKeyedLocker<string>(o =>
+        {
+            o.PoolSize = 20;
+            o.PoolInitialFill = 1;
+        });
 
         public ConnectionStatusSubscriptionService(Logger logger, IConnectionManager connectionManager, IStorageProvider storageProvider, ISubscriptionCallbackFactory subscriptionCallbackFactory)
         {
@@ -38,36 +43,22 @@ namespace DeviceBridge.Services
 
         public async Task<DeviceSubscription> CreateOrUpdateConnectionStatusSubscription(Logger logger, string deviceId, string callbackUrl, CancellationToken cancellationToken)
         {
-            var mutex = _connectionStatusSubscriptionSyncSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _connectionStatusSubscriptionSyncSemaphores.LockAsync(deviceId, cancellationToken).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection status subscription sync lock for device {deviceId}", deviceId);
                 var subscription = await _storageProvider.CreateOrUpdateDeviceSubscription(logger, deviceId, DeviceSubscriptionType.ConnectionStatus, callbackUrl, cancellationToken);
                 _connectionManager.SetConnectionStatusCallback(deviceId, _subscriptionCallbackFactory.GetConnectionStatusChangeCallback(deviceId, subscription));
                 return subscription;
             }
-            finally
-            {
-                mutex.Release();
-            }
         }
 
         public async Task DeleteConnectionStatusSubscription(Logger logger, string deviceId, CancellationToken cancellationToken)
         {
-            var mutex = _connectionStatusSubscriptionSyncSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _connectionStatusSubscriptionSyncSemaphores.LockAsync(deviceId, cancellationToken).ConfigureAwait(false))
             {
                 _logger.Info("Acquired connection status subscription sync lock for device {deviceId}", deviceId);
                 await _storageProvider.DeleteDeviceSubscription(logger, deviceId, DeviceSubscriptionType.ConnectionStatus, cancellationToken);
                 _connectionManager.RemoveConnectionStatusCallback(deviceId);
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
     }

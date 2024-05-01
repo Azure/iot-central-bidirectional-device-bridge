@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AsyncKeyedLock;
 using DeviceBridge.Models;
 using DeviceBridge.Providers;
 using Microsoft.Azure.Devices.Client;
@@ -39,7 +40,11 @@ namespace DeviceBridge.Services
         private readonly ISubscriptionCallbackFactory _subscriptionCallbackFactory;
         private readonly Logger _logger;
         private readonly ConcurrentDictionary<string, List<DeviceSubscription>> dataSubscriptionsToInitialize;
-        private ConcurrentDictionary<string, SemaphoreSlim> _dbAndConnectionStateSyncSemaphores = new ConcurrentDictionary<string, SemaphoreSlim>();
+        private AsyncKeyedLocker<string> _dbAndConnectionStateSyncSemaphores = new AsyncKeyedLocker<string>(o =>
+        {
+            o.PoolSize = 20;
+            o.PoolInitialFill = 1;
+        });
 
         private ConcurrentDictionary<string, long> _scheduledConnectionsNotBefore = new ConcurrentDictionary<string, long>(); // Stores which devices have a scheduled connection and the earliest timestamp that connection should be attempted (not before).
         private ConcurrentDictionary<string, byte> _hasDataSubscriptions = new ConcurrentDictionary<string, byte>(); // Stores which device Ids have data subscriptions. NOTE: used as workaround for absence of a ConcurrentHashSet (as recommended)
@@ -220,10 +225,7 @@ namespace DeviceBridge.Services
             // Synchronizing this code is the only way to guarantee that the current state of the runner will always reflect the latest state in the DB.
             // Otherwise we could end up in an inconsistent state if a subscription is deleted and recreated too fast or if a subscription is modified
             // while we're initializing the device with data fetched from the DB on startup.
-            var mutex = _dbAndConnectionStateSyncSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _dbAndConnectionStateSyncSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 _logger.Info("Acquired DB and connection state sync lock for device {deviceId}", deviceId);
                 List<DeviceSubscription> dataSubscriptions;
@@ -295,10 +297,6 @@ namespace DeviceBridge.Services
                     await _connectionManager.AssertDeviceConnectionClosedAsync(deviceId);
                 }
             }
-            finally
-            {
-                mutex.Release();
-            }
         }
 
         private async Task AttemptDeviceConnection(string deviceId)
@@ -307,45 +305,41 @@ namespace DeviceBridge.Services
 
             // Synchronization is needed to avoid the race condition of a device connection being closed between the time we check
             // if a connection should be open (the device has subscriptions) and the connection open call being actually issued.
-            var mutex = _dbAndConnectionStateSyncSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _dbAndConnectionStateSyncSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
-                if (!_hasDataSubscriptions.TryGetValue(deviceId, out _))
+                try
                 {
-                    _logger.Info("Skipping scheduled connection attempt for device {deviceId} as it no longer has data subscriptions.", deviceId);
-                    return;
-                }
+                    if (!_hasDataSubscriptions.TryGetValue(deviceId, out _))
+                    {
+                        _logger.Info("Skipping scheduled connection attempt for device {deviceId} as it no longer has data subscriptions.", deviceId);
+                        return;
+                    }
 
-                await _connectionManager.AssertDeviceConnectionOpenAsync(deviceId, false /* permanent */);
-                _consecutiveConnectionFailures.TryRemove(deviceId, out int _);
-                _logger.Info("Successfully opened scheduled connection for device {deviceId}.", deviceId);
-            }
-            catch (Exception e)
-            {
-                int failedAttempts;
-                if (_consecutiveConnectionFailures.TryGetValue(deviceId, out failedAttempts))
+                    await _connectionManager.AssertDeviceConnectionOpenAsync(deviceId, false /* permanent */);
+                    _consecutiveConnectionFailures.TryRemove(deviceId, out int _);
+                    _logger.Info("Successfully opened scheduled connection for device {deviceId}.", deviceId);
+                }
+                catch (Exception e)
                 {
-                    failedAttempts++;
-                }
-                else
-                {
-                    failedAttempts = 1;
-                }
+                    int failedAttempts;
+                    if (_consecutiveConnectionFailures.TryGetValue(deviceId, out failedAttempts))
+                    {
+                        failedAttempts++;
+                    }
+                    else
+                    {
+                        failedAttempts = 1;
+                    }
 
-                _consecutiveConnectionFailures.AddOrUpdate(deviceId, failedAttempts, (key, oldValue) => failedAttempts);
+                    _consecutiveConnectionFailures.AddOrUpdate(deviceId, failedAttempts, (key, oldValue) => failedAttempts);
 
-                // A failed connection attempt already includes the regular device client retries and a DPS registration attempt,
-                // so we back off after each failed attempt, up to 30 minutes.
-                var backoff = new Random().Next(0, Math.Min(ConnectionBackoffPerFailedAttemptSeconds * failedAttempts, MaxConnectionBackoffSeconds));
-                _logger.Error(e, "Failed to open scheduled connection for device {deviceId}. {failedAttempts} consecutive failed attempts so far. Connection scheduled for retry after {backoff} seconds.", deviceId, failedAttempts, backoff);
-                var notBefore = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + backoff;
-                _scheduledConnectionsNotBefore.AddOrUpdate(deviceId, notBefore, (key, oldValue) => notBefore);
-            }
-            finally
-            {
-                mutex.Release();
+                    // A failed connection attempt already includes the regular device client retries and a DPS registration attempt,
+                    // so we back off after each failed attempt, up to 30 minutes.
+                    var backoff = new Random().Next(0, Math.Min(ConnectionBackoffPerFailedAttemptSeconds * failedAttempts, MaxConnectionBackoffSeconds));
+                    _logger.Error(e, "Failed to open scheduled connection for device {deviceId}. {failedAttempts} consecutive failed attempts so far. Connection scheduled for retry after {backoff} seconds.", deviceId, failedAttempts, backoff);
+                    var notBefore = DateTimeOffset.UtcNow.ToUnixTimeSeconds() + backoff;
+                    _scheduledConnectionsNotBefore.AddOrUpdate(deviceId, notBefore, (key, oldValue) => notBefore);
+                }
             }
         }
 
@@ -372,10 +366,7 @@ namespace DeviceBridge.Services
             }
 
             // Synchronize this block so we don't reschedule a connection retry while a connection attempt is ongoing.
-            var mutex = _dbAndConnectionStateSyncSemaphores.GetOrAdd(deviceId, new SemaphoreSlim(1, 1));
-            await mutex.WaitAsync();
-
-            try
+            using (await _dbAndConnectionStateSyncSemaphores.LockAsync(deviceId).ConfigureAwait(false))
             {
                 var deviceStatus = _connectionManager.GetDeviceStatus(deviceId);
 
@@ -397,10 +388,6 @@ namespace DeviceBridge.Services
                 _logger.Info("Scheduling connection retry for device {deviceId}.", deviceId);
                 var notBefore = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
                 _scheduledConnectionsNotBefore.AddOrUpdate(deviceId, notBefore, (key, oldValue) => notBefore);
-            }
-            finally
-            {
-                mutex.Release();
             }
         }
     }
