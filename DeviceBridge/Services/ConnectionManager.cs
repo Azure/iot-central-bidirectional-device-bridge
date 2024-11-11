@@ -60,11 +60,7 @@ namespace DeviceBridge.Services
         private readonly IStorageProvider _storageProvider;
 
         private ConcurrentDictionary<string, DeviceClient> _clients = new ConcurrentDictionary<string, DeviceClient>();
-        private AsyncKeyedLocker<string> _clientSemaphores = new AsyncKeyedLocker<string>(o =>
-        {
-            o.PoolSize = 20;
-            o.PoolInitialFill = 1;
-        });
+        private AsyncKeyedLocker<string> _clientSemaphores = new AsyncKeyedLocker<string>();
 
         private ConcurrentDictionary<string, (ConnectionStatus status, ConnectionStatusChangeReason reason)> _clientStatuses = new ConcurrentDictionary<string, (ConnectionStatus status, ConnectionStatusChangeReason reason)>();
         private ConcurrentDictionary<string, DateTime> _lastConnectionAttempt = new ConcurrentDictionary<string, DateTime>();
