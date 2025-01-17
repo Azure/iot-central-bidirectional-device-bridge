@@ -10,7 +10,7 @@ namespace DeviceBridge.Common
 {
     public static class Utils
     {
-        private static MD5 hasher = MD5.Create();
+        private static SHA256 hasher = SHA256.Create();
 
         /// <summary>
         /// Generates a GUID hashed from an input string.
