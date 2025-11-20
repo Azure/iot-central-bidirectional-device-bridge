@@ -1,6 +1,6 @@
 module github.com/iot-for-all/iotc-device-bridge/custom-transform-adapter
 
-go 1.16
+go 1.24.0
 
 require (
 	github.com/Azure/go-autorest/autorest v0.11.18
@@ -13,5 +13,16 @@ require (
 	github.com/mitchellh/mapstructure v1.4.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.3.0
-	golang.org/x/crypto v0.35.0 // indirect
+)
+
+require (
+	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
+	github.com/Azure/go-autorest/autorest/adal v0.9.13 // indirect
+	github.com/Azure/go-autorest/logger v0.2.1 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/form3tech-oss/jwt-go v3.2.2+incompatible // indirect
+	github.com/itchyny/timefmt-go v0.1.2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
 )
